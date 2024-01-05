@@ -37,6 +37,7 @@ if __name__=="__main__":
     # Chosen torsion from precompute
     fullG = _sage_const_3  * _sage_const_5 **_sage_const_3  * _sage_const_7 **_sage_const_2  * _sage_const_11 **_sage_const_3  * _sage_const_13 **_sage_const_2  * _sage_const_17  * _sage_const_19  * _sage_const_23  * _sage_const_29  * _sage_const_31  * _sage_const_37  * _sage_const_41  * _sage_const_43  * _sage_const_47  * _sage_const_53  * _sage_const_61  * _sage_const_71  * _sage_const_73  * _sage_const_79  * _sage_const_89  * _sage_const_97  * _sage_const_137  * _sage_const_139  * _sage_const_151  * _sage_const_163  * _sage_const_167  * _sage_const_181  * _sage_const_193  * _sage_const_199  * _sage_const_223  * _sage_const_239  * _sage_const_241  * _sage_const_257  * _sage_const_281  * _sage_const_311  * _sage_const_317  * _sage_const_331  * _sage_const_349  * _sage_const_353  * _sage_const_367  * _sage_const_373  * _sage_const_397  * _sage_const_401  * _sage_const_409  * _sage_const_419  * _sage_const_421  * _sage_const_433  * _sage_const_457  * _sage_const_461  * _sage_const_463  * _sage_const_487  * _sage_const_499  * _sage_const_509  * _sage_const_541  * _sage_const_547  * _sage_const_569  * _sage_const_571  * _sage_const_577  * _sage_const_587  * _sage_const_593  * _sage_const_617  * _sage_const_619  * _sage_const_631  * _sage_const_641  * _sage_const_659  * _sage_const_691  * _sage_const_719  * _sage_const_727  * _sage_const_739  * _sage_const_743  * _sage_const_751  * _sage_const_757  * _sage_const_761  * _sage_const_773  * _sage_const_787  * _sage_const_797  * _sage_const_827  * _sage_const_829  * _sage_const_853  * _sage_const_857  * _sage_const_863  * _sage_const_881  * _sage_const_941  * _sage_const_953  * _sage_const_967  * _sage_const_971 
 
+    found = False
     for div in range(_sage_const_1 , _sage_const_100000 ):
         if (fullG) % div != _sage_const_0 :
             continue
@@ -49,10 +50,12 @@ if __name__=="__main__":
             print(M)
             y, z, sol = Cornacchia(qf, M)
             if sol:
-                print("We got it!!!")
                 omega = x*i + y*j + z*k
-                break
-        if omega:
+                if omega/_sage_const_2  not in O0 and omega/_sage_const_3  not in O0:
+                    print("We got it!!!")
+                    found = True
+                    break
+        if found:
             break
     
     I = O0*path + O0*omega
@@ -62,5 +65,8 @@ if __name__=="__main__":
     print(RR(log(I.norm(), p)))
     assert omega/path in I.right_order()
     print(omega/path)
+    print(omega/_sage_const_2  in I.left_order())
+    print(omega/_sage_const_2  in O0)
+    print(omega/(path*_sage_const_2 ) in I.right_order())
     
 

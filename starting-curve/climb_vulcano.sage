@@ -31,6 +31,7 @@ if __name__=="__main__":
     # Chosen torsion from precompute
     fullG = 3 * 5^3 * 7^2 * 11^3 * 13^2 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 * 61 * 71 * 73 * 79 * 89 * 97 * 137 * 139 * 151 * 163 * 167 * 181 * 193 * 199 * 223 * 239 * 241 * 257 * 281 * 311 * 317 * 331 * 349 * 353 * 367 * 373 * 397 * 401 * 409 * 419 * 421 * 433 * 457 * 461 * 463 * 487 * 499 * 509 * 541 * 547 * 569 * 571 * 577 * 587 * 593 * 617 * 619 * 631 * 641 * 659 * 691 * 719 * 727 * 739 * 743 * 751 * 757 * 761 * 773 * 787 * 797 * 827 * 829 * 853 * 857 * 863 * 881 * 941 * 953 * 967 * 971
 
+    found = False
     for div in range(1, 100000):
         if (fullG) % div != 0:
             continue
@@ -43,10 +44,12 @@ if __name__=="__main__":
             print(M)
             y, z, sol = Cornacchia(qf, M)
             if sol:
-                print("We got it!!!")
                 omega = x*i + y*j + z*k
-                break
-        if omega:
+                if omega/2 not in O0 and omega/3 not in O0:
+                    print("We got it!!!")
+                    found = True
+                    break
+        if found:
             break
     
     I = O0*path + O0*omega
@@ -56,4 +59,7 @@ if __name__=="__main__":
     print(RR(log(I.norm(), p)))
     assert omega/path in I.right_order()
     print(omega/path)
+    print(omega/2 in I.left_order())
+    print(omega/2 in O0)
+    print(omega/(path*2) in I.right_order())
     
