@@ -2,6 +2,7 @@ import cypari2
 pari = cypari2.Pari()
 from ast import literal_eval
 
+
 def discrete_log_pari(a, base, order):
     r"""
     Wrapper around pari discrete log.
@@ -11,6 +12,7 @@ def discrete_log_pari(a, base, order):
     """
     x = pari.fflog(a, base, order)
     return ZZ(x)
+
 
 def BiDLP(R, P, Q, D): 
     r"""
@@ -26,6 +28,7 @@ def BiDLP(R, P, Q, D):
     assert R == a*P + b*Q
     return a, b
 
+
 def torsionBasis(E, D):
     F = E.base_field()
     p = F.characteristic()
@@ -33,7 +36,6 @@ def torsionBasis(E, D):
     cof = (p+1) // D
     facD = factor(D)
     Drad = radical(D) 
-
     
     while True:
         Psmalls = []
@@ -72,15 +74,6 @@ def torsionBasis(E, D):
             Q.set_order(D)
             return P, Q
 
-def customDual(E, phi, dual_gen, deg):
-    
-    K = phi(dual_gen)
-    K.set_order(2**(deg))
-
-    phi_hat = phi.codomain().isogeny(K, algorithm='factored')
-
-    return phi_hat.codomain().isomorphism_to(E) * phi_hat
-
 
 def actionMatrix(E, K1, K2, P, Q, order):
 
@@ -103,7 +96,6 @@ def actionMatrix(E, K1, K2, P, Q, order):
     x_1, x_2 = BiDLP(phi_1P, phi_2P, phi_2Q, order)
     x_1 = (deg_inv*x_1) % order
     x_2 = (deg_inv*x_2) % order
-
     
     x_3, x_4 = BiDLP(phi_1Q, phi_2P, phi_2Q, order)
     x_3 = (deg_inv*x_3) % order
@@ -134,6 +126,7 @@ def actionMatrix(E, K1, K2, P, Q, order):
 
     return [[x_1, x_3], [x_2, x_4]]
 
+
 def ActionIdeal(E, K1, K2, Lpos, Lneg):
     # Takes in an effectively oriented curve (E, K1, K2) and an ideal norm L
     # Computes the action of an ideal of norm L
@@ -160,7 +153,7 @@ def ActionIdeal(E, K1, K2, Lpos, Lneg):
         Mat = Matrix(GF(ell), M)
 
         #find coeffs and kernel generator
-        if Lpos%ell == 1:
+        if Lpos%ell == 0:
             pos = 0
         else:
             pos = 1
@@ -206,6 +199,7 @@ def ActionIdeal(E, K1, K2, Lpos, Lneg):
 
     return E_i, K1_i, K2_i
 
+
 def GroupAction(E, K1, K2, vec, ells):    
     
     import time
@@ -238,6 +232,7 @@ def GroupAction(E, K1, K2, vec, ells):
     print(f"Took a total of {time.time() - t_start} seconds")
 
     return E_i, K1_i, K2_i
+
 
 if __name__ == "__main__":
     proof.all(False)
