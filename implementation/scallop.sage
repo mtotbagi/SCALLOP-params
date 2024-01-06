@@ -250,11 +250,25 @@ if __name__ == "__main__":
     P.set_order(2**518)
     Q.set_order(2**518)
 
-    es = [randint(-20, 20) for _ in range(75)]
-
     with open("split_primes.txt", "r") as file:
         ells = file.readline()
 
     ells = [int(ell) for ell in ells.split(" ")]
 
-    GroupAction(E, P, Q, es, ells)
+    alice = [randint(-3, 3) for _ in range(75)]
+    bob = [randint(-3, 3) for _ in range(75)]
+
+    E_A, P_A, Q_A = GroupAction(E, P, Q, alice.copy(), ells)
+    print("\n\n\n ALICE PUBLIC KEY DONE")
+    E_B, P_B, Q_B = GroupAction(E, P, Q, bob.copy(), ells)
+    print("\n\n\n BOB PUBLIC KEY DONE")
+
+    E_BA, _, _ = GroupAction(E_B, P_B, Q_B, alice.copy(), ells)
+    print("\n\n\n ALICE SHARED SECRET DONE")
+    E_AB, _, _ = GroupAction(E_A, P_A, Q_A, bob.copy(), ells)
+    print("\n\n\n BOB SHARED SECRET DONE")
+
+    print(E_AB.j_invariant())
+    print(E_BA.j_invariant())
+
+    assert E_AB.j_invariant() == E_BA.j_invariant()
