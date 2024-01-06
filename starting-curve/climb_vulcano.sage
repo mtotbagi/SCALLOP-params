@@ -1,12 +1,4 @@
-def Cornacchia(QF, m):
-    m_prime = prod([l**e for l, e in factor(m, limit=1000) if l < 1000])
-    if not is_pseudoprime(m/m_prime):
-        return None, None, False
-    print("Potential solution??")
-    sol = QF.solve_integer(m)
-    if not sol:
-        return None, None, False
-    return sol[0], sol[1], True
+
 
 
 if __name__=="__main__":
@@ -15,7 +7,7 @@ if __name__=="__main__":
     p = Integer(2)**518*f*N - 1
 
     d = 810544624661213367964996895060809843164181099028487384400155560066253019789927
-    conductor = 945648148713467501094696962403454233607167517444788408618448739064461646654337307344171931120486640510821138175364584
+    conductor = 945648148713467501094696962403454233607167517444788408618448739064461646654337307344171931120486640510821138175364584/(8*3)
 
     B = QuaternionAlgebra(-1, -p)
     i, j, k = B.gens()
