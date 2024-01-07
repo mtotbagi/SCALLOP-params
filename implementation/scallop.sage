@@ -210,9 +210,6 @@ def GroupAction(E, K1, K2, vec, ells):
                 Lneg *= ells[i]
                 vec[i] += 1
         E_i, K1_i, K2_i = ActionIdeal(E_i, K1_i, K2_i, Lpos, Lneg)
-    
-    vec = [-e for e in vec]
-    inv = True
 
     print("\n\n\n~~~~~DONE~~~~~\n")
     print(f"Took a total of {time.time() - t_start} seconds")
