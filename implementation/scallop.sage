@@ -127,29 +127,11 @@ def actionMatrix(E, K1, K2, P, Q, order):
     return [[x_1, x_3], [x_2, x_4]]
 
 
-def ActionIdeal(E, K1, K2, Lpos, Lneg):
-    # Takes in an effectively oriented curve (E, K1, K2) and an ideal norm L
-    # Computes the action of an ideal of norm L
+def getKernel(P, Q, L, Lpos, M):   
 
-    L = Lpos*Lneg
-
-    print("Computing torsion basis")
-    P, Q = torsionBasis(E, L)
-
-    print("Computing action matrix")
-    M = actionMatrix(E, K1, K2, P, Q, L)
-
-    E_i = E
-    P_i = P
-    Q_i = Q
-
-    K1_i = K1
-    K2_i = K2
-
-    cofac = L
+    ker_gens = []
 
     for ell, _ in factor(L):
-        print(f"Computing isogeny of norm {ell}")
         Mat = Matrix(GF(ell), M)
 
         #find coeffs and kernel generator
@@ -160,44 +142,48 @@ def ActionIdeal(E, K1, K2, Lpos, Lneg):
 
         lams = sorted([int(lam) for lam in Mat.eigenvalues()])
         lam = lams[pos] #positive direction = smallest absolute value for instance?
-
-        print(lams)
+        #print(f"ell: {ell}, eigenvalues: {lams}") <- useful for debugging, these should always be the same...
         
         a, b = (Mat - Matrix(GF(ell), [[lam, 0], [0, lam]])).right_kernel().basis()[0]
         if a != 0:
-            ker_gen = P_i + b*(a**(-1))*Q_i
-            Q_i *= ell
-            P_i *= ell
+            ker_gen = P + b*(a**(-1))*Q
         else:
-            ker_gen = Q_i
-            P_i *= ell
-            Q_i *= ell
+            ker_gen = Q
 
-        ker_gen *= (cofac/ell)
+        ker_gen *= (L/ell)
         assert ker_gen
+        ker_gens.append(ker_gen)
 
-        if ell > 300:
-            phi_ell = E_i.isogeny(ker_gen, algorithm='velu_sqrt')
-        else:
-            phi_ell = E_i.isogeny(ker_gen)
+    K = sum(ker_gens)
+    K.set_order(L)
+    
+    return K
 
-        P_i = phi_ell(P_i)
-        Q_i = phi_ell(Q_i)
-        K1_i = phi_ell(K1_i)
-        K2_i = phi_ell(K2_i)
 
-        E_i = phi_ell.codomain()
-        cofac /= ell
+def ActionIdeal(E, P, Q, Lpos, Lneg):
+    # Takes in an effectively oriented curve (E, K1, K2) and an ideal norm L
+    # Computes the action of an ideal of norm L
 
-        P_i.set_order(cofac)
-        Q_i.set_order(cofac)
+    L = Lpos*Lneg
 
-        K1_i.set_order(2**518)
-        K2_i.set_order(2**518)
+    print("Computing torsion basis")
+    B1, B2 = torsionBasis(E, L)
 
-    assert cofac == 1
+    print("Computing action matrix")
+    M = actionMatrix(E, P, Q, B1, B2, L)
 
-    return E_i, K1_i, K2_i
+    print("Finding kernel generator of ideal")
+    ker_gen = getKernel(B1, B2, L, Lpos, M)
+
+    print("Computing isogeny corresponding to ideal")
+    phi = E.isogeny(ker_gen, algorithm='factored')
+
+    print("Evaluating isogeny")
+    E_l = phi.codomain()
+    P_l = phi(P)
+    Q_l = phi(Q)
+
+    return E_l, P_l, Q_l
 
 
 def GroupAction(E, K1, K2, vec, ells):    
@@ -253,8 +239,14 @@ if __name__ == "__main__":
     with open("split_primes.txt", "r") as file:
         ells = file.readline()
 
+
+    
     ells = [int(ell) for ell in ells.split(" ")]
 
+    es = [randint(-20, 20) for _ in range(75)]
+    GroupAction(E, P, Q, es, ells)
+
+    """
     alice = [randint(-3, 3) for _ in range(75)]
     bob = [randint(-3, 3) for _ in range(75)]
 
@@ -272,3 +264,4 @@ if __name__ == "__main__":
     print(E_BA.j_invariant())
 
     assert E_AB.j_invariant() == E_BA.j_invariant()
+    """
