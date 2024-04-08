@@ -230,9 +230,36 @@ void test_pearlscallop_1024()
     ecp Q = *Q_up;
 
     std::vector<int> ells{7,13,23,29,47,61,73,79,89,97,137,139,151,167,181,193,199,223,239,241,257,281,311,317,331,349,353,367,373,397,401,409,419,421,433,457,461,463,487,499,509,541,547,569,571,577,587,593,617,619,631,641,659,691,719,727,739,743,751,757,761,773,787,797,827,829,853,857,863,881,941,953,967,971,977};
-    std::vector<int> es = GenSecret(75, 5);
+    
 
-    auto PQ_A = GroupAction(P, Q, ells, es);
+    //Just a random L-infty norm 20 vector
+    std::vector<int> es = GenSecret(75, 20);
+    auto PK_A = GroupAction(P, Q, ells, es);
+
+    /*
+    //Key exchange
+    std::vector<int> es_A = GenSecret(75, 2);
+    std::vector<int> es_B = GenSecret(75, 2);
+
+    auto PK_A = GroupAction(P, Q, ells, es_A);
+    std::cout << "\n\n~~~~~~~Alice public key done~~~~~~~~\n\n\n" << std::endl;
+    auto PK_B = GroupAction(P, Q, ells, es_B);
+    std::cout << "\n\n~~~~~~~Bob public key done~~~~~~~~\n\n\n" << std::endl;
+
+    auto SS_A = GroupAction(PK_B.first, PK_B.second, ells, es_A);
+    std::cout << "\n\n~~~~~~~Alice shared key done~~~~~~~~\n\n\n" << std::endl;
+
+    auto SS_B = GroupAction(PK_A.first, PK_A.second, ells, es_B);
+    std::cout << "\n\n~~~~~~~Bob shared key done~~~~~~~~\n\n\n" << std::endl;
+
+    std::cout << "Shared keys equal??" << std::endl;
+    std::cout << "j(E_AB) = " << SS_B.first.curve().j_invariant() << std::endl;
+    std::cout << "j(E_BA) = " << SS_A.first.curve().j_invariant() << std::endl;
+    */
+    
+    //Reduced vector?
+    //std::vector<int> es{-29,-91,-57,-4,-36,5,-86,46,17,147,61,31,-79,50,-29,-1,-16,37,41,-29,-25,-21,-44,-50,-21,-45,51,-50,-7,9,-5,4,-1,-36,-12,-19,-40,13,-9,-8,-37,-5,-12,-12,24,-12,12,-14,-12,25,-25,-8,38,-5,13,-4,15,13,-6,-1,-4,-30,14,-3,-13,10,-14,-5,-3,-1,-1,3,-2,0,7};
+    //auto PQ_B = GroupAction(P, Q, ells, es);
 }
 
 int main()

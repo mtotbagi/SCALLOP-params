@@ -9,5 +9,5 @@
 #include "isog.hpp"
 
 
-std::pair<ecp, ecp> ActionIdealStep(std::pair<ecp, ecp> PQ, NTL::ZZ const &Lpos, NTL::ZZ const &Lneg, std::vector<int> const &ells, std::vector<int> es);
+std::pair<ecp, ecp> ActionIdealStep(std::pair<ecp, ecp> PQ, ecp &Qm, NTL::ZZ Lpos, NTL::ZZ Lneg, std::vector<int> const &ells, std::vector<int> &es);
 std::pair<ecp, ecp> GroupAction(ecp const &P, ecp const &Q, std::vector<int> const &ells, std::vector<int> const &es);

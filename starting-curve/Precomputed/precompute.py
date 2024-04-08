@@ -204,24 +204,32 @@ def ActionMatrix(alpha, basis, ord):
     #return Matrix(Integers(P.order()), [[a, b],[c,d]])
     return [[a, b],[c,d]]
 
-
-f = Integer(817)
-N = Integer(22711775683133590811692237376342429238176828137256920271016701278225953126746258369874072200439826127375102732028076826684141799893454573890942633774296721382453081077340536135990593000334249)
-p = Integer(2)**518*f*N - 1
+proof.all(False)
+#f = Integer(817)
+#f = Integer(83)
+f = Integer(371)
+#e = 518
+e = 1554
+#N = Integer(22711775683133590811692237376342429238176828137256920271016701278225953126746258369874072200439826127375102732028076826684141799893454573890942633774296721382453081077340536135990593000334249)
+#N = prod([p for p in Primes()[:1000] if p not in [2, 3, 5, 23, 2593, 5857]][:150])
+N = prod([p for p in Primes()[:1000] if p not in [2, 3, 5, 23, 2593, 5857]][:100])
+p = Integer(2)**e*f*N - 1
 
 F = GF((p,2), name='z2', modulus=var('x')**2 + 1)
 sqrtm1 = F.gens()[0]
 
-filename = 'Precomputed/75-primes.py'
+#filename = 'Precomputed/75-primes.py'
+filename = 'Precomputed/100-primes-2048.py'
 try:
     open(filename, "r")
     print('precomputed file already exists!')
 except:
-    assert is_prime(p)
+    assert is_pseudoprime(p)
 
     print("Choosing torsion....")
-    T, facToExt = choose_torsion(p, 1, (2**(0.6*RR(log(p,2)))))
+    T, facToExt = choose_torsion(p, 1, (2**(0.57*RR(log(p,2)))))
 
+    T = ZZ(T) # Only for the big one
     print(f"Gonna find torsion = {factor(T)}")
     print(facToExt)
     f = (p+1).valuation(2)

@@ -73,6 +73,37 @@ def torsionBasis(E, D):
             P.set_order(D)
             Q.set_order(D)
             return P, Q
+        
+def completeBasis(E, D, P):
+    F = E.base_field()
+    p = F.characteristic()
+
+    cof = (p+1) // D
+    facD = factor(D)
+    Drad = radical(D) 
+
+    Psmalls = []
+    Psmall = P*(D/Drad)
+    for (l, e) in facD:
+        Psmall_i = Psmall*(Drad/l)
+        Psmalls.append(Psmall_i)
+
+    while True:
+        x = F.random_element()
+        try:
+            Q = E.lift_x(x)*cof
+        except:
+            continue
+        Qsmall = Q*(D/Drad)
+        basis = True
+        for i, (l, e) in enumerate(facD):
+            Qsmalli = Qsmall*(Drad/l)
+            if not Qsmalli or Psmalls[i].weil_pairing(Qsmalli, l) == 1:
+                basis = False
+                break
+        if basis:
+            Q.set_order(D)
+            return Q
 
 
 def actionMatrix(E, K1, K2, P, Q, order):
@@ -131,6 +162,9 @@ def getKernel(P, Q, L, Lpos, M):
 
     ker_gens = []
 
+    lam1s = []
+    lam2s = []
+
     for ell, _ in factor(L):
         Mat = Matrix(GF(ell), M)
 
@@ -140,7 +174,12 @@ def getKernel(P, Q, L, Lpos, M):
         else:
             pos = 1
 
+        print(f"ell: {ell}")
+        print(f"lams: {Mat.eigenvalues()}")
+
         lams = sorted([int(lam) for lam in Mat.eigenvalues()])
+        lam1s.append(lams[0])
+        lam2s.append(lams[1])
         lam = lams[pos] #positive direction = smallest absolute value for instance?
         #print(f"ell: {ell}, eigenvalues: {lams}") <- useful for debugging, these should always be the same...
         
@@ -156,8 +195,74 @@ def getKernel(P, Q, L, Lpos, M):
 
     K = sum(ker_gens)
     K.set_order(L)
+
+    print("CRT lams:")
+    print(crt(lam1s, [ell for ell, _ in factor(L)]))
+    print(crt(lam2s, [ell for ell, _ in factor(L)]))
     
     return K
+
+def getKernelPrecomputedEigen(P, Q, L, Lpos, omega, omega_bar):
+    lampos = 1708298732195233441796205849078049269809774359155278336331280856185673548093108801649110316273383324791940297639831593458851060986908148784492132745287237220884212999179490292014463937711260
+    lamneg = 21003476950938357369896031527264380182891980657183195527869820393272548129119708424839829416852343941922026863608741498103124098909400216982866894294803151154158272595988210522793797887274525
+
+    wP = omega(P)
+    wQ = omega(Q)
+
+    x_1, x_2 = BiDLP(wP, P, Q, L)    
+    x_3, x_4 = BiDLP(wQ, P, Q, L)
+
+    lam1s = []
+    lam2s = []
+    for ell, _ in factor(L):
+        Mat = Matrix(GF(ell), [[x_1, x_3], [x_2, x_4]])
+
+        print(f"ell: {ell}")
+        print(f"lams: {Mat.eigenvalues()}")
+
+        lams = sorted([int(lam) for lam in Mat.eigenvalues()])
+        lam1s.append(lams[0])
+        lam2s.append(lams[1])
+
+    print("CRT lams:")
+    print(crt(lam1s, [ell for ell, _ in factor(L)]))
+    print(crt(lam2s, [ell for ell, _ in factor(L)]))
+    print(f"L = {L}")
+
+    Lneg = L//Lpos
+
+    Ppos = omega(P) - (lamneg % L)*P
+    Qpos = omega(Q) - (lamneg % L)*Q
+    print("these should be true false false true")
+    print(omega(Ppos) == lampos*Ppos)
+    print(omega(Ppos) == lamneg*Ppos)
+
+    Pneg = omega(P) - (lampos % L)*P
+    Qneg = omega(Q) - (lampos % L)*Q
+    print(omega(Pneg) == lampos*Pneg)
+    print(omega(Pneg) == lamneg*Pneg)
+
+    primary = [Ppos, Pneg]
+    backup = [Qpos, Qneg]
+
+    ker_gens = []
+
+    for ell, _ in factor(L):
+        dir = 0
+        if Lpos%ell != 0:
+            dir = 1
+
+        Ki = (L/ell)*primary[dir]
+        if not Ki:
+            Ki = (L/ell)*backup[dir]
+        assert Ki
+        ker_gens.append(Ki)
+
+    K = sum(ker_gens)
+    K.set_order(L)
+
+    return K
+
 
 
 def ActionIdeal(E, P, Q, Lpos, Lneg):
@@ -169,11 +274,24 @@ def ActionIdeal(E, P, Q, Lpos, Lneg):
     print("Computing torsion basis")
     B1, B2 = torsionBasis(E, L)
 
-    print("Computing action matrix")
-    M = actionMatrix(E, P, Q, B1, B2, L)
+    #print("Computing action matrix")
+    #M = actionMatrix(E, P, Q, B1, B2, L)
+
+    print("Computing omega")
+    phi_P = E.isogeny(P, algorithm='factored')
+    phi_Q = E.isogeny(Q, algorithm='factored')
+
+    Qm = completeBasis(E, 2**518, Q)
+    phi_Q_dual = phi_Q.codomain().isogeny(phi_Q(Qm), algorithm='factored')
+    omega = phi_Q_dual.codomain().isomorphism_to(E) * phi_Q_dual * phi_P.codomain().isomorphism_to(phi_Q.codomain()) * phi_P
+
+    Pm = completeBasis(E, 2**518, P)
+    phi_P_dual = phi_P.codomain().isogeny(phi_P(Pm), algorithm='factored')
+    omega_bar = phi_P_dual.codomain().isomorphism_to(E) * phi_P_dual * phi_Q.codomain().isomorphism_to(phi_P.codomain()) * phi_Q
 
     print("Finding kernel generator of ideal")
-    ker_gen = getKernel(B1, B2, L, Lpos, M)
+    #ker_gen = getKernel(B1, B2, L, Lpos, M)
+    ker_gen = getKernelPrecomputedEigen(B1, B2, L, Lpos, omega, omega_bar)
 
     print("Computing isogeny corresponding to ideal")
     phi = E.isogeny(ker_gen, algorithm='factored')
@@ -233,6 +351,8 @@ if __name__ == "__main__":
     P.set_order(2**518)
     Q.set_order(2**518)
 
+    
+
     with open("split_primes.txt", "r") as file:
         ells = file.readline()
 
@@ -240,7 +360,9 @@ if __name__ == "__main__":
     
     ells = [int(ell) for ell in ells.split(" ")]
 
-    es = [randint(-20, 20) for _ in range(75)]
+    es = [randint(-5, 5) for _ in range(75)]
+    #es = [3 for _ in range(75)]
+    #es = [0,-3,5,-2,-2,-1,1,16,14,6,5,-17,16,27,8,-34,6,9,1,2,19,-24,21,35,-2,41,-11,-5,60,-11,80,6,20,13,15,8,22,2,-21,-12,7,-19,-68,-39,9,-68,-13,33,2,-3,-6,-139,-1,-4,26,10,-6,1,18,-13,-31,13,14,-6,32,-14,6,0,-3,8,2,6,-4,0,11]
     GroupAction(E, P, Q, es, ells)
 
     """
