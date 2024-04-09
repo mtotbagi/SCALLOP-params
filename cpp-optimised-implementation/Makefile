@@ -3,7 +3,7 @@
 all: main
 
 SOURCES = main.cpp
-HEADERS = montgomery.hpp fp2.hpp
+HEADERS = montgomery.hpp fp2.hpp isog.hpp scallop.hpp
 
 main: $(SOURCES) $(HEADERS)
 	$(CXX) \
