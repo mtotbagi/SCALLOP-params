@@ -105,59 +105,26 @@ ProjA ActionIdealStep(xPoint &P, xPoint &Q, xPoint &Qm, ProjA A, NTL::ZZ Lpos, N
 
     //Compute isogeny, and update exponent vector
     std::cout << "Computing odd isogenies..." << std::endl;
-    for (size_t i = 0 ; i < ells.size() ; i++) {
-        xPoint Ki;
-        bool pos = true;
-        if (Lpos % ells[i] == 0) {
-            Lpos /= ells[i];
-            Ki = xMUL(Kp, Lpos, Ai);
 
-        } else if (Lneg % ells[i] == 0) {
-            pos = false;
-            Lneg /= ells[i];
-            Ki = xMUL(Kn, Lneg, Ai);
-        } else {
-            continue;
-        }
-
-        if (!(IsIdentity(Ki))) {
-            assert (IsIdentity(xMUL(Ki, NTL::ZZ(ells[i]), Ai)));
-
-            std::vector<xPoint> evalPts{P, Q, Qm};
-
-            if (Lpos != 1) {
-                evalPts.push_back(Kp);
-            }
-            if (Lneg != 1) {
-                evalPts.push_back(Kn);
-            }
-            
-            NormalizePoint(Ki);
-            NormalizeCoeff(Ai);
-            Ai = xISOG(Ki, Ai, ells[i], evalPts);
-
-            P = evalPts[0];
-            Q = evalPts[1];
-            Qm = evalPts[2];
-
-            if (Lpos != 1) {
-                Kp = evalPts[3];
-                if (Lneg != 1) {
-                    Kn = evalPts[4];
-                }
-            } else if (Lneg != 1) {
-                Kn = evalPts[3];
-            }
-
-            if (pos) {
-                es[i] -= 1;
-            } else {
-                es[i] += 1;
-            }
-        } else {
-            continue;
-        }
+    std::vector<xPoint> evalPts;
+    if (Lneg == 1) {
+        evalPts = {P, Q, Qm};
+        Ai = xISOG_Chain(Kp, Ai, Lpos, evalPts, 1, ells, es);
+    } else if (Lpos == 1) {
+        evalPts = {P, Q, Qm};
+        Ai = xISOG_Chain(Kn, Ai, Lneg, evalPts, -1, ells, es);
+    } else {
+        evalPts = {P, Q, Qm, Kn};
+        Ai = xISOG_Chain(Kp, Ai, Lpos, evalPts, 1, ells, es);
+        Kn = evalPts[3];
+        evalPts.pop_back();
+        Ai = xISOG_Chain(Kn, Ai, Lneg, evalPts, -1, ells, es);
     }
+
+    P = evalPts[0];
+    Q = evalPts[1];
+    Qm = evalPts[2];
+
     d2 = std::chrono::duration_cast<std::chrono::milliseconds>(d2 + std::chrono::steady_clock::now() - start_d2);
     return Ai;
 }

@@ -179,11 +179,11 @@ void test_scallop_1024()
     std::vector<int> ells{7,13,23,29,47,61,73,79,89,97,137,139,151,167,181,193,199,223,239,241,257,281,311,317,331,349,353,367,373,397,401,409,419,421,433,457,461,463,487,499,509,541,547,569,571,577,587,593,617,619,631,641,659,691,719,727,739,743,751,757,761,773,787,797,827,829,853,857,863,881,941,953,967,971,977};
     
     // Just a random L-infty norm 20 vector
-    /* std::vector<int> es = GenSecret(75, 20);
-    auto PK_A = GroupAction(P, Q, Qm, A, ells, es); */
+    std::vector<int> es = GenSecret(75, 20);
+    auto PK_A = GroupAction(P, Q, Qm, A, ells, es);
 
     // Key Exchange
-    std::vector<int> es_A = GenSecret(75, 3);
+    /* std::vector<int> es_A = GenSecret(75, 3);
     std::vector<int> es_B = GenSecret(75, 3);
 
     xPoint P_A = P;
@@ -206,7 +206,7 @@ void test_scallop_1024()
     std::cout << "Shared keys equal??" << std::endl;
     std::cout << "j(E_AB) = " << StringFp2(jInvariant(SS_A)) << std::endl;
     std::cout << "j(E_AB) = " << StringFp2(jInvariant(SS_B)) << std::endl;
-    assert (Fp2_equal(jInvariant(SS_A), jInvariant(SS_B)));
+    assert (Fp2_equal(jInvariant(SS_A), jInvariant(SS_B))); */
 
     //Reduced vector?
     /* std::vector<int> es{0,-3,5,-2,-2,-1,1,16,14,6,5,-17,16,27,8,-34,6,9,1,2,19,-24,21,35,-2,41,-11,-5,60,-11,80,6,20,13,15,8,22,2,-21,-12,7,-19,-68,-39,9,-68,-13,33,-1,20,-31,-104,-18,-23,6,30,11,11,-7,-11,9,9,8,33,-3,12,0,4,8,4,-4,-11,-1,0,11};

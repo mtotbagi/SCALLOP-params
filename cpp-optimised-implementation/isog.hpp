@@ -228,3 +228,38 @@ ProjA xISOG(xPoint const &P, ProjA const &A, int ell, std::vector<xPoint> &evalP
 
     return A_new;
 }
+
+ProjA xISOG_Chain(xPoint &K, ProjA const &A, NTL::ZZ &L, std::vector<xPoint> &evalPts, int adj, std::vector<int> const &ells, std::vector<int> &es) {
+    // Sub-routine, also updates es
+    ProjA Ai = A;
+    for (size_t i = 0 ; i < ells.size() ; i++) {
+        xPoint Ki;
+        bool pos = true;
+        if (L % ells[i] == 0) {
+            L /= ells[i];
+            Ki = xMUL(K, L, Ai);
+        } else {
+            continue;
+        }
+
+        if (!(IsIdentity(Ki))) {
+            assert (IsIdentity(xMUL(Ki, NTL::ZZ(ells[i]), Ai)));
+            if (L != 1) {
+                evalPts.push_back(K);
+            }
+            
+            NormalizePoint(Ki);
+            NormalizeCoeff(Ai);
+            Ai = xISOG(Ki, Ai, ells[i], evalPts);
+
+            if (L != 1) {
+                K = evalPts[evalPts.size() - 1];
+                evalPts.pop_back();
+            }
+            es[i] -= adj;
+        } else {
+            continue;
+        }
+    }
+    return Ai;
+}
