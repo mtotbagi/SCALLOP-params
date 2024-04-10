@@ -88,7 +88,7 @@ ProjA ActionIdealStep(xPoint &P, xPoint &Q, xPoint &Qm, ProjA A, NTL::ZZ Lpos, N
         wKn = TwoIsogChainEvaluate(wKn, KerGens_3);
         wKn = IsomorphismEval(wKn, ur_home);
         assert (IsIdentity(xMUL(wKn, Lneg, A)));
-        xPoint lamKn = xMUL(Kn, lampos, A);
+        xPoint lamKn = xMUL(Kn, lamneg, A);
         assert (IsIdentity(xMUL(lamKn, Lneg, A)));
 
         // Compute Kp and Kn accordingly
