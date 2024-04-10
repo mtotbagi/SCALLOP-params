@@ -5,6 +5,13 @@
 typedef std::pair<fp2_elem, fp2_elem> xPoint;
 typedef std::pair<fp2_elem, fp2_elem> ProjA;
 
+//// Printing
+std::string StringPoint(xPoint const &P) {
+    std::ostringstream oss;
+    oss << "(" << StringFp2(P.first) << " : " << StringFp2(P.second) << ")";
+    return oss.str();
+}
+
 void NormalizePoint(xPoint &P) {
     //normalize in place
     if (IsZero(P.second)) {
@@ -115,6 +122,26 @@ xPoint xMUL(xPoint const &P, NTL::ZZ const &m, ProjA A) {
         }
     }
     return P0;
+}
+
+xPoint Ladder3pt(xPoint const &P, xPoint const &Q, xPoint const &PmQ, NTL::ZZ const &m, ProjA const &A) {
+
+	xPoint P0 = Q;
+    xPoint P1 = P;
+    xPoint P2 = PmQ;
+    
+    for (size_t i = 0; i < NTL::NumBits(m); i++) {
+        if (((m >> i) & 1) == 1) {
+            auto output = xDBLADD(P0, P1, P2, A);
+            P0 = output.first; //2P0
+            P1 = output.second; //P0 + P1
+        } else {
+            auto output = xDBLADD(P0, P2, P1, A);
+            P0 = output.first;
+            P2 = output.second;
+        }
+    }
+	return P1;
 }
 
 xPoint xADD(xPoint const &P, xPoint const &Q, xPoint const &PmQ) {
@@ -229,9 +256,3 @@ fp2_elem jInvariant(ProjA const &A) {
 	return j;
 }
 
-//// Printing
-std::string StringPoint(xPoint const &P) {
-    std::ostringstream oss;
-    oss << "(" << StringFp2(P.first) << " : " << StringFp2(P.second) << ")";
-    return oss.str();
-}

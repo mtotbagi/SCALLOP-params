@@ -115,30 +115,27 @@ void test_ec_params_1024()
     assert (IsIdentity(xMUL(K, NTL::ZZ(47), A)));
     assert (IsIdentity(xMUL(lamK, NTL::ZZ(47), A)));
 
-    auto K_pos = xADDSUB(wK, lamK, A);
+    auto PointDiff = xADDSUB(wK, K, A);
 
-    assert (IsIdentity(xMUL(K_pos.first, NTL::ZZ(47), A)));
-    assert (IsIdentity(xMUL(K_pos.second, NTL::ZZ(47), A)));
+    xPoint Kp = Ladder3pt(wK, K, PointDiff.first, lamneg, A);
+    assert (IsIdentity(xMUL(Kp, NTL::ZZ(47), A)));
 
-    xPoint Kp = K_pos.first;
+    // Test that we got the correct sign
+    xPoint wKp = TwoIsogChainEvaluate(Kp, KerGens_1);
+    wKp = TwoIsogChainEvaluate(wKp, KerGens_3);
+    wKp = IsomorphismEval(wKp, ur_home);
 
-    xPoint wK_pos = TwoIsogChainEvaluate(K_pos.first, KerGens_1);
-    wK_pos = TwoIsogChainEvaluate(wK_pos, KerGens_3);
-    wK_pos = IsomorphismEval(wK_pos, ur_home);
+    xPoint lamKp = xMUL(Kp, lampos, A);
 
-    xPoint lamK_pos = xMUL(K_pos.first, lampos, A);
+    xPoint Kn;
 
-    if (!(PointEqual(lamK_pos, wK_pos))) {
-        std::cout << "SIGN FLIP THING" << std::endl;
-        wK_pos = TwoIsogChainEvaluate(K_pos.second, KerGens_1);
-        wK_pos = TwoIsogChainEvaluate(wK_pos, KerGens_3);
-        wK_pos = IsomorphismEval(wK_pos, ur_home);
-
-        lamK_pos = xMUL(K_pos.second, lampos, A);
-        assert (PointEqual(lamK_pos, wK_pos));
-
-        Kp = K_pos.second;
+    // Compute Kp and Kn accordingly
+    if (!(PointEqual(lamKp, wKp))) {
+        std::cout << "SIGN FLIP" << std::endl;
+        Kp = Ladder3pt(wK, K, PointDiff.second, lamneg, A);
+        assert (IsIdentity(xMUL(Kp, NTL::ZZ(47), A)));
     }
+    NormalizePoint(Kp);
 
     std::vector<xPoint> evalPts{P, Q, Qm};
     ProjA A2 = xISOG(Kp, A, 47, evalPts);
@@ -182,8 +179,33 @@ void test_scallop_1024()
     std::vector<int> ells{7,13,23,29,47,61,73,79,89,97,137,139,151,167,181,193,199,223,239,241,257,281,311,317,331,349,353,367,373,397,401,409,419,421,433,457,461,463,487,499,509,541,547,569,571,577,587,593,617,619,631,641,659,691,719,727,739,743,751,757,761,773,787,797,827,829,853,857,863,881,941,953,967,971,977};
     
     //Just a random L-infty norm 20 vector
-    std::vector<int> es = GenSecret(75, 20);
-    auto PK_A = GroupAction(P, Q, Qm, A, ells, es);
+    /* std::vector<int> es = GenSecret(75, 20);
+    auto PK_A = GroupAction(P, Q, Qm, A, ells, es); */
+
+    std::vector<int> es_A = GenSecret(75, 3);
+    std::vector<int> es_B = GenSecret(75, 3);
+
+    xPoint P_A = P;
+    xPoint P_B = P;
+    xPoint Q_A = Q;
+    xPoint Q_B = Q;
+    xPoint Qm_A = Qm;
+    xPoint Qm_B = Qm;
+    ProjA PK_A = GroupAction(P_A, Q_A, Qm_A, A, ells, es_A);
+    std::cout << "\n\n~~~~~~~Alice public key done~~~~~~~~\n\n\n" << std::endl;
+    ProjA PK_B = GroupAction(P_B, Q_B, Qm_B, A, ells, es_B);
+    std::cout << "\n\n~~~~~~~Bob public key done~~~~~~~~\n\n\n" << std::endl;
+
+    auto SS_A = GroupAction(P_B, Q_B, Qm_B, PK_B, ells, es_A);
+    std::cout << "\n\n~~~~~~~Alice shared key done~~~~~~~~\n\n\n" << std::endl;
+
+    auto SS_B = GroupAction(P_A, Q_A, Qm_A, PK_A, ells, es_B);
+    std::cout << "\n\n~~~~~~~Bob shared key done~~~~~~~~\n\n\n" << std::endl;
+
+    std::cout << "Shared keys equal??" << std::endl;
+    std::cout << "j(E_AB) = " << StringFp2(jInvariant(SS_A)) << std::endl;
+    std::cout << "j(E_AB) = " << StringFp2(jInvariant(SS_B)) << std::endl;
+    assert (Fp2_equal(jInvariant(SS_A), jInvariant(SS_B)));
 
     std::cout << "  Success!\n\n\n\n" << std::endl;
 }

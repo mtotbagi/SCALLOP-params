@@ -15,8 +15,9 @@ void printVector(std::vector<int> const &vec) {
     std::cout << std::endl;
 }
 
-ProjA ActionIdealStep(xPoint &P, xPoint &Q, xPoint &Qm, ProjA A, NTL::ZZ Lpos, NTL::ZZ Lneg, std::vector<int> const &ells, std::vector<int> &es)
+ProjA ActionIdealStep(xPoint &P, xPoint &Q, xPoint &Qm, ProjA A, NTL::ZZ Lpos, NTL::ZZ Lneg, std::vector<int> const &ells, std::vector<int> &es, std::chrono::duration<long, std::milli> &d1, std::chrono::duration<long, std::milli> &d2)
 {
+    auto start_d1 = std::chrono::steady_clock::now();
     NormalizeCoeff(A);
     NTL::ZZ lampos, lamneg;
     NTL::conv(lampos, "1708298732195233441796205849078049269809774359155278336331280856185673548093108801649110316273383324791940297639831593458851060986908148784492132745287237220884212999179490292014463937711260");
@@ -32,14 +33,13 @@ ProjA ActionIdealStep(xPoint &P, xPoint &Q, xPoint &Qm, ProjA A, NTL::ZZ Lpos, N
     }
 
     //Computing omega
+    std::cout << "Computing kernel generator.... " << std::endl;
     std::vector<int> strat{256, 128, 64, 32, 17, 9, 5, 3, 2, 1, 1, 1, 1, 2, 1, 1, 1, 4, 2, 1, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 64, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 128, 64, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 64, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1};
     
     std::vector<xPoint> KerGens_1, KerGens_2, KerGens_3;
     ProjA Am = TwoIsogChainPrecompute(P, A, strat, KerGens_1);
-    std::cout << "j-invariant away P: " << StringFp2(jInvariant(Am)) << std::endl;
 
     ProjA Amm = TwoIsogChainPrecompute(Q, A, strat, KerGens_2);
-    std::cout << "j-invariant away Q: " << StringFp2(jInvariant(Amm)) << std::endl;
 
     auto ur = IsomorphismConstants(Amm, Am);
     xPoint Qmm = TwoIsogChainEvaluate(Qm, KerGens_2);
@@ -47,48 +47,60 @@ ProjA ActionIdealStep(xPoint &P, xPoint &Q, xPoint &Qm, ProjA A, NTL::ZZ Lpos, N
     Qmm = IsomorphismEval(Qmm, ur);
     ProjA A_start = TwoIsogChainPrecompute(Qmm, Am, strat, KerGens_3);
 
-    std::cout << "j-invariant orig: " << StringFp2(jInvariant(A)) << std::endl;
-    std::cout << "j-invariant recovered: " << StringFp2(jInvariant(A_start)) << std::endl;
-
     auto ur_home = IsomorphismConstants(A_start, A);
-
-    std::cout << "Finding K and evaluating" << std::endl;
 
     xPoint wK = TwoIsogChainEvaluate(K, KerGens_1);
     wK = TwoIsogChainEvaluate(wK, KerGens_3);
     wK = IsomorphismEval(wK, ur_home);
 
-    xPoint lamnegK = xMUL(K, lamneg % Lpos, A);
-    xPoint lamposK = xMUL(K, lampos % Lneg, A);
+    auto PointDiff = xADDSUB(wK, K, A);
 
-    auto K_pos_both = xADDSUB(wK, lamnegK, A);
-    xPoint Kp = xMUL(K_pos_both.first, Lneg, A);
+    xPoint Kp;
+    xPoint Kn;
+    if (Lpos > 1) {
+        Kp = Ladder3pt(wK, K, PointDiff.first, (lamneg % Lpos), A);
+        Kp = xMUL(Kp, Lneg, A);
 
-    xPoint wKp = TwoIsogChainEvaluate(Kp, KerGens_1);
-    wKp = TwoIsogChainEvaluate(wKp, KerGens_3);
-    wKp = IsomorphismEval(wKp, ur_home);
+        // Test that we got the correct sign
+        xPoint wKp = TwoIsogChainEvaluate(Kp, KerGens_1);
+        wKp = TwoIsogChainEvaluate(wKp, KerGens_3);
+        wKp = IsomorphismEval(wKp, ur_home);
+        assert (IsIdentity(xMUL(wKp, Lpos, A)));
+        xPoint lamKp = xMUL(Kp, lampos, A);
+        assert (IsIdentity(xMUL(lamKp, Lpos, A)));
 
-    xPoint lamKp = xMUL(Kp, lampos, A);
+        // Compute Kp and Kn accordingly
+        if ((PointEqual(lamKp, wKp))) {
+            Kn = Ladder3pt(wK, K, PointDiff.first, (lampos % Lneg), A);
+            Kn = xMUL(Kn, Lpos, A);
+        } else {
+            std::cout << "SIGN FLIP THING" << std::endl;
+            Kp = Ladder3pt(wK, K, PointDiff.second, (lamneg % Lpos), A);
+            Kp = xMUL(Kp, Lneg, A);
+            Kn = Ladder3pt(wK, K, PointDiff.second, (lampos % Lneg), A);
+            Kn = xMUL(Kn, Lpos, A);
+        }
+    } else {        
+        Kn = Ladder3pt(wK, K, PointDiff.first, (lampos % Lneg), A);
 
-    if (!(PointEqual(lamKp, wKp))) {
-        std::cout << "SIGN FLIP THING ON Kp" << std::endl;
-        Kp = xMUL(K_pos_both.second, Lneg, A);
+        // Test that we got the correct sign
+        xPoint wKn = TwoIsogChainEvaluate(Kn, KerGens_1);
+        wKn = TwoIsogChainEvaluate(wKn, KerGens_3);
+        wKn = IsomorphismEval(wKn, ur_home);
+        assert (IsIdentity(xMUL(wKn, Lneg, A)));
+        xPoint lamKn = xMUL(Kn, lampos, A);
+        assert (IsIdentity(xMUL(lamKn, Lneg, A)));
+
+        // Compute Kp and Kn accordingly
+        if (!(PointEqual(lamKn, wKn))) {
+            std::cout << "SIGN FLIP THING" << std::endl;
+            Kn = Ladder3pt(wK, K, PointDiff.second, (lampos % Lneg), A);
+        }
+
     }
 
-    auto K_neg_both = xADDSUB(wK, lamposK, A);
-    xPoint Kn = xMUL(K_neg_both.first, Lpos, A);
-
-    xPoint wKn = TwoIsogChainEvaluate(Kn, KerGens_1);
-    wKn = TwoIsogChainEvaluate(wKn, KerGens_3);
-    wKn = IsomorphismEval(wKn, ur_home);
-
-    xPoint lamKn = xMUL(Kp, lamneg, A);
-
-    if (!(PointEqual(lamKn, wKn))) {
-        std::cout << "SIGN FLIP THING ON Kn" << std::endl;
-        Kn = xMUL(K_neg_both.second, Lpos, A);
-    }
-
+    d1 = std::chrono::duration_cast<std::chrono::milliseconds>(d1 + std::chrono::steady_clock::now() - start_d1);
+    auto start_d2 = std::chrono::steady_clock::now();
     ProjA Ai = A;
 
     //Compute isogeny, and update exponent vector
@@ -146,6 +158,7 @@ ProjA ActionIdealStep(xPoint &P, xPoint &Q, xPoint &Qm, ProjA A, NTL::ZZ Lpos, N
             continue;
         }
     }
+    d2 = std::chrono::duration_cast<std::chrono::milliseconds>(d2 + std::chrono::steady_clock::now() - start_d2);
     return Ai;
 }
 
@@ -161,6 +174,8 @@ bool _all_zero(std::vector<int> const &vec) {
 ProjA GroupAction(xPoint &P, xPoint &Q, xPoint &Qm, ProjA const &A, std::vector<int> const &ells, std::vector<int> const &es_in)
 {
     auto start = std::chrono::steady_clock::now();
+    std::chrono::duration<long, std::milli> duration_compute_kernel = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
+    std::chrono::duration<long, std::milli> duration_odd_isogenies = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
     std::vector<int> es(es_in);
     
     ProjA Ai = A;
@@ -178,12 +193,12 @@ ProjA GroupAction(xPoint &P, xPoint &Q, xPoint &Qm, ProjA const &A, std::vector<
                 Lneg *= ells[i];
             }
         }
-        std::cout << "Going into step" << std::endl;
-        Ai = ActionIdealStep(P, Q, Qm, Ai, Lpos, Lneg, ells, es);
-        std::cout << "finished a step" << std::endl;
+        Ai = ActionIdealStep(P, Q, Qm, Ai, Lpos, Lneg, ells, es, duration_compute_kernel, duration_odd_isogenies);
 
         auto duration = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start);
-        std::cout << "We have used " << duration.count() << "seconds" << std::endl;
+        std::cout << ">>> We have used " << duration.count() << " seconds" << std::endl;
+        std::cout << ">>> On finding ker gens: " << duration_compute_kernel.count() << " milliseconds" << std::endl;
+        std::cout << ">>> On computing odd isos: " << duration_odd_isogenies.count() << " milliseconds" << std::endl;
     }
     return Ai;
 }
