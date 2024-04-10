@@ -6,6 +6,9 @@
 #include "montgomery.hpp"
 #include "isog.hpp"
 
+//#include "params_512.hpp"
+#include "params_1024.hpp"
+
 
 void printVector(std::vector<int> const &vec) {
     std::cout << "es: " << std::endl;
@@ -15,13 +18,10 @@ void printVector(std::vector<int> const &vec) {
     std::cout << std::endl;
 }
 
-ProjA ActionIdealStep(xPoint &P, xPoint &Q, xPoint &Qm, ProjA A, NTL::ZZ Lpos, NTL::ZZ Lneg, std::vector<int> const &ells, std::vector<int> &es, std::chrono::duration<long, std::milli> &d1, std::chrono::duration<long, std::milli> &d2)
+ProjA ActionIdealStep(xPoint &P, xPoint &Q, xPoint &Qm, ProjA A, NTL::ZZ Lpos, NTL::ZZ Lneg, std::vector<int> &es, std::chrono::duration<long, std::milli> &d1, std::chrono::duration<long, std::milli> &d2)
 {
     auto start_d1 = std::chrono::steady_clock::now();
     NormalizeCoeff(A);
-    NTL::ZZ lampos, lamneg;
-    NTL::conv(lampos, "1708298732195233441796205849078049269809774359155278336331280856185673548093108801649110316273383324791940297639831593458851060986908148784492132745287237220884212999179490292014463937711260");
-    NTL::conv(lamneg, "21003476950938357369896031527264380182891980657183195527869820393272548129119708424839829416852343941922026863608741498103124098909400216982866894294803151154158272595988210522793797887274525");
 
     NTL::ZZ L = Lpos*Lneg;
 
@@ -34,7 +34,6 @@ ProjA ActionIdealStep(xPoint &P, xPoint &Q, xPoint &Qm, ProjA A, NTL::ZZ Lpos, N
 
     //Computing omega
     std::cout << "Computing kernel generator.... " << std::endl;
-    std::vector<int> strat{256, 128, 64, 32, 17, 9, 5, 3, 2, 1, 1, 1, 1, 2, 1, 1, 1, 4, 2, 1, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 64, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 128, 64, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 64, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1};
     
     std::vector<xPoint> KerGens_1, KerGens_2, KerGens_3;
     ProjA Am = TwoIsogChainPrecompute(P, A, strat, KerGens_1);
@@ -138,7 +137,7 @@ bool _all_zero(std::vector<int> const &vec) {
     return true;
 }
 
-ProjA GroupAction(xPoint &P, xPoint &Q, xPoint &Qm, ProjA const &A, std::vector<int> const &ells, std::vector<int> const &es_in)
+ProjA GroupAction(xPoint &P, xPoint &Q, xPoint &Qm, ProjA const &A, std::vector<int> const &es_in)
 {
     auto start = std::chrono::steady_clock::now();
     std::chrono::duration<long, std::milli> duration_compute_kernel = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
@@ -160,7 +159,7 @@ ProjA GroupAction(xPoint &P, xPoint &Q, xPoint &Qm, ProjA const &A, std::vector<
                 Lneg *= ells[i];
             }
         }
-        Ai = ActionIdealStep(P, Q, Qm, Ai, Lpos, Lneg, ells, es, duration_compute_kernel, duration_odd_isogenies);
+        Ai = ActionIdealStep(P, Q, Qm, Ai, Lpos, Lneg, es, duration_compute_kernel, duration_odd_isogenies);
 
         auto duration = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start);
         std::cout << ">>> We have used " << duration.count() << " seconds" << std::endl;

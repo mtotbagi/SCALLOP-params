@@ -234,7 +234,6 @@ ProjA xISOG_Chain(xPoint &K, ProjA const &A, NTL::ZZ &L, std::vector<xPoint> &ev
     ProjA Ai = A;
     for (size_t i = 0 ; i < ells.size() ; i++) {
         xPoint Ki;
-        bool pos = true;
         if (L % ells[i] == 0) {
             L /= ells[i];
             Ki = xMUL(K, L, Ai);
