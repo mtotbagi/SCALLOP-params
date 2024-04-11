@@ -84,7 +84,7 @@ ProjA TwoIsogChainPrecompute(xPoint const &Q, ProjA &A_in, std::vector<int> cons
             npts += 1;
             int m = strategy[ii];
             ii += 1;
-            P = xMUL(P, NTL::power(NTL::ZZ(2), m), A);
+            P = xDBLe(P, m, A);
             index += m;
         }
 

@@ -65,6 +65,16 @@ xPoint xDBL(xPoint const &P, ProjA const &A) {
 	return {X2, Z2};
 }
 
+xPoint xDBLe(xPoint const &P, int e, ProjA const &A) {
+    // Point with (X : Z), and on a curve with montgomery A
+    xPoint Pi = P;
+    for (size_t i = 0 ; i < e ; i++) {
+        Pi = xDBL(Pi, A);
+    }
+
+	return Pi;
+}
+
 std::pair<xPoint, xPoint> xDBLADD(xPoint const &P, xPoint const &Q, xPoint const &PmQ, ProjA const &A) {
     // Differential addition
     // Returns 2P, P+Q

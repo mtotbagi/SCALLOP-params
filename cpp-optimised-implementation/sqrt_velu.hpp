@@ -26,6 +26,8 @@ I product_tree(std::vector<I> const &leaves) {
             return prev[0];
         };
 
+// NTL Is not fast enough to make this worth it... :( Need to do it properly...
+
 NTL::ZZ_pE ntl(fp2_elem const &a) {
     NTL::ZZ_pX a_poly;
     NTL::ZZ_pE a_ntl;
