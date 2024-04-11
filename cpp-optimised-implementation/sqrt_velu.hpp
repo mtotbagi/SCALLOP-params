@@ -7,17 +7,98 @@
 #include "fp2.hpp"
 #include "montgomery.hpp"
 
+// Currently not working....
+// Also, NTL resultant computation is hella slow??
+
+std::vector<fp2_elem> Poly_mult(std::vector<fp2_elem> const &a, std::vector<fp2_elem> const &b) {
+    std::vector<fp2_elem> ab;
+
+    size_t m = a.size() - 1;
+    size_t n = b.size() - 1;
+    for (size_t i = 0 ; i <= m + n ; i++) {
+        fp2_elem coeff = Fp2_zero();
+        for (size_t j = 0 ; j <= std::min(i, m) ; j++) {
+            if (i-j <= n) {
+                coeff = Fp2_add(coeff, Fp2_mul(a[j], b[i-j]));
+            }
+        }
+        ab.push_back(coeff);
+    }
+
+    return ab;
+}
+
+std::vector<fp2_elem> Poly_add(std::vector<fp2_elem> const &a, std::vector<fp2_elem> const &b) {
+    std::vector<fp2_elem> a_sum_b;
+
+    size_t m = a.size() - 1;
+    size_t n = b.size() - 1;
+
+    for (size_t i = 0 ; i <= std::min(m, n) ; i++) {
+        a_sum_b.push_back(Fp2_add(a[i], b[i]));
+    }
+    if (m > n) {
+        for (size_t i = n; i <= m ; i++) {
+            a_sum_b.push_back(a[i]);
+        }
+    } else if (n > m) {
+        for (size_t i = m; i <= n ; i++) {
+            a_sum_b.push_back(b[i]);
+        }
+    }
+    return a_sum_b;
+}
+
+std::vector<fp2_elem> Poly_scale(fp2_elem const &a, std::vector<fp2_elem> const &b) {
+    std::vector<fp2_elem> ab;
+
+    for (fp2_elem const &b_coeff : b) {
+        ab.push_back(Fp2_mul(a, b_coeff));
+    }
+
+    return ab;
+}
+
+std::vector<fp2_elem> Xmin(fp2_elem const &a) {
+    return {Fp2_negative(a), Fp2_one()};
+}
+
+std::vector<fp2_elem> F0(fp2_elem const &a) {
+
+    std::vector<fp2_elem> f0 = Xmin(a);
+
+    return Poly_mult(f0, f0);
+}
+
+std::vector<fp2_elem> F1(fp2_elem const &a, fp2_elem const &A) {
+
+    std::vector<fp2_elem> t0{Fp2_zero(), a};
+    std::vector<fp2_elem> t1{Fp2_one(), a};
+    std::vector<fp2_elem> t2{a, Fp2_one()};
+    t1 = Poly_mult(t1, t2);
+    t0 = Poly_scale(Fp2_add(A, A), t0);
+
+    std::vector<fp2_elem> f1 = Poly_add(t0, t1);
+
+    fp2_elem min_two{NTL::ZZ_p(-2), NTL::ZZ_p(0)};
+    return Poly_scale(min_two, f1);
+}
+
+std::vector<fp2_elem> F2(fp2_elem const &a) {
+    std::vector<fp2_elem> f2{Fp2_negative(Fp2_one()), a};
+    return Poly_mult(f2, f2);
+}
+
 // Product tree (from SCALLOP code)
-template <class I>
-I product_tree(std::vector<I> const &leaves) {
+std::vector<fp2_elem> product_tree(std::vector<std::vector<fp2_elem>> const &leaves) {
             if (leaves.empty())
                 throw std::logic_error("no leaves");
             auto prev = leaves; //<- copies leaves to not modify the original list...
             while (prev.size() > 1) {
-                std::vector<I> next;
+                std::vector<std::vector<fp2_elem>> next;
                 {
                     for (size_t i = 0; i < prev.size()-1; i += 2)
-                        next.push_back(prev[i] * prev[i+1]);
+                        next.push_back(Poly_mult(prev[i], prev[i+1]));
                     if (prev.size() % 2)
                         next.push_back(prev.back());
                 }
@@ -26,15 +107,16 @@ I product_tree(std::vector<I> const &leaves) {
             return prev[0];
         };
 
-// NTL Is not fast enough to make this worth it... :( Need to do it properly...
-
 NTL::ZZ_pE ntl(fp2_elem const &a) {
     NTL::ZZ_pX a_poly;
     NTL::ZZ_pE a_ntl;
 
+
     NTL::SetCoeff(a_poly, 1);
     a_poly[0] = a.first;
-    a_poly[1] = a.second;
+    if (!IsZero(a.second)) {
+        a_poly[1] = a.second;
+    }
 
     NTL::conv(a_ntl, a_poly);
 
@@ -45,32 +127,19 @@ fp2_elem fp2_conv(NTL::ZZ_pE const &a) {
     return {NTL::rep(a)[0], NTL::rep(a)[1]};
 }
 
-NTL::ZZ_pEX F0(NTL::ZZ_pE const &a) {
-    NTL::ZZ_pEX X, f0;
-    NTL::SetX(X);
+NTL::ZZ_pE Resultant(std::vector<fp2_elem> const &a, std::vector<fp2_elem> const &b) {
+    NTL::vec_ZZ_pE a_vec, b_vec;
+    NTL::ZZ_pEX a_ntl, b_ntl;
+    for (fp2_elem const &a_coeff : a) {
+        a_vec.append(ntl(a_coeff));
+    }
+    for (fp2_elem const &b_coeff : b) {
+        b_vec.append(ntl(b_coeff));
+    }
+    NTL::conv(a_ntl, a_vec);
+    NTL::conv(b_ntl, b_vec);
 
-    f0 = X - a;
-
-    return f0*f0;
-}
-
-NTL::ZZ_pEX F1(NTL::ZZ_pE const &a, NTL::ZZ_pE const &A) {
-    NTL::ZZ_pEX X, f1;
-    NTL::SetX(X);
-
-    NTL::ZZ_pEX t0 = X*a;
-    f1 = (t0 + 1)*(X + a) + 2*A*t0;
-
-    return -2*f1;
-}
-
-NTL::ZZ_pEX F2(NTL::ZZ_pE const &a) {
-    NTL::ZZ_pEX X, f2;
-    NTL::SetX(X);
-
-    f2 = X*a - 1;
-
-    return f2*f2;
+    return NTL::resultant(a_ntl, b_ntl);
 }
 
 ProjA SqrtVELU(xPoint &Q, ProjA &A, int ell, std::vector<xPoint> &evalPts) {
@@ -80,10 +149,8 @@ ProjA SqrtVELU(xPoint &Q, ProjA &A, int ell, std::vector<xPoint> &evalPts) {
     NTL::ZZ_pE A_ntl = ntl(A.first);
     fp2_elem Del_IJ;
 
-    std::vector<NTL::ZZ_pEX> h_I_list, D_J_list;   
-    std::vector<std::vector<NTL::ZZ_pEX>> E_Js_list;
-    NTL::ZZ_pEX X;
-    NTL::SetX(X);
+    std::vector<std::vector<fp2_elem>> h_I_list, D_J_list;   
+    std::vector<std::vector<std::vector<fp2_elem>>> E_Js_list;
 
     std::vector<NTL::ZZ_pE> alphas;
     std::vector<fp2_elem> eval_xi;
@@ -124,7 +191,7 @@ ProjA SqrtVELU(xPoint &Q, ProjA &A, int ell, std::vector<xPoint> &evalPts) {
     xPoint R = xMUL(Q, NTL::ZZ(I_start), A);
     xPoint diff = xMUL(Q, NTL::ZZ((I_step - I_start) % ell), A);
     NormalizePoint(R);
-    h_I_list.push_back(X - ntl(R.first));
+    h_I_list.push_back(Xmin(R.first));
 
     xPoint sQ = xMUL(Q, NTL::ZZ(I_step), A);
 
@@ -133,22 +200,30 @@ ProjA SqrtVELU(xPoint &Q, ProjA &A, int ell, std::vector<xPoint> &evalPts) {
         R = xADD(R, sQ, diff);
         NormalizePoint(R);
 
-        h_I_list.push_back(X - ntl(R.first));
+        h_I_list.push_back(Xmin(R.first));
         diff = Rold;
     }
 
-    NTL::ZZ_pEX h_I = product_tree<NTL::ZZ_pEX>(h_I_list);
+    std::vector<fp2_elem> h_I = product_tree(h_I_list);
 
     size_t num_pts = alphas.size();
 
     // loop through J
     R = Q;
-    NTL::ZZ_pE xq = ntl(R.first);
+    fp2_elem xq = R.first;
 
-    for (NTL::ZZ_pE const &alpha : alphas) {
-        E_Js_list.push_back({F0(xq)*alpha*alpha + F1(xq, A_ntl)*alpha + F2(xq)});
+    std::vector<fp2_elem> F0q = F0(xq);
+    std::vector<fp2_elem> F1q = F1(xq, A.first);
+    std::vector<fp2_elem> F2q = F2(xq);
+
+    for (fp2_elem const &alpha : eval_xi) {
+        std::vector<fp2_elem> f = Poly_scale(Fp2_sqr(alpha), F0q);
+        f = Poly_add(f, Poly_scale(alpha, F1q));
+        f = Poly_add(f, F2q);
+        E_Js_list.push_back({f});
     }
-    D_J_list.push_back(F0(xq));
+
+    D_J_list.push_back(F0q);
 
     sQ = xDBL(Q, A);
     diff = Q;
@@ -162,30 +237,28 @@ ProjA SqrtVELU(xPoint &Q, ProjA &A, int ell, std::vector<xPoint> &evalPts) {
 
         NTL::ZZ_pE xq = ntl(R.first);
 
-        NTL::ZZ_pEX F0q = F0(xq);
-        NTL::ZZ_pEX F1q = F1(xq, A_ntl);
-        NTL::ZZ_pEX F2q = F2(xq);
-
-        for (size_t i = 0 ; i < num_pts ; i++) {
-            NTL::ZZ_pE alpha = alphas[i];
-            E_Js_list[i].push_back(F0q*alpha*alpha + F1q*alpha + F2q);
+        for (size_t i = 0 ; i < num_pts ; i++) {        
+            std::vector<fp2_elem> f = Poly_scale(Fp2_sqr(eval_xi[i]), F0q);
+            f = Poly_add(f, Poly_scale(eval_xi[i], F1q));
+            f = Poly_add(f, F2q);
+            E_Js_list[i].push_back(f);
         }
         D_J_list.push_back(F0q);
         diff = Rold;
     }
 
-    NTL::ZZ_pEX D_J = product_tree<NTL::ZZ_pEX>(D_J_list);
-    std::vector<NTL::ZZ_pEX> E_Js;
-    for (std::vector<NTL::ZZ_pEX> E_J_list : E_Js_list) {
-        E_Js.push_back(product_tree<NTL::ZZ_pEX>(E_J_list));
+    std::vector<fp2_elem> D_J = product_tree(D_J_list);
+    std::vector<std::vector<fp2_elem>> E_Js;
+
+    for (std::vector<std::vector<fp2_elem>> E_J_list : E_Js_list) {
+        E_Js.push_back(product_tree(E_J_list));
     }
 
-    Del_IJ = fp2_conv(NTL::resultant(h_I, D_J));
+    Del_IJ = fp2_conv(Resultant(h_I, D_J));
 
     std::vector<fp2_elem> h_S;
 
     //looping through K
-
     R = xMUL(Q, NTL::ZZ(K_start), A);
     NormalizePoint(R);
     for (fp2_elem alpha : eval_xi) {
@@ -207,7 +280,7 @@ ProjA SqrtVELU(xPoint &Q, ProjA &A, int ell, std::vector<xPoint> &evalPts) {
     }
 
     for (size_t i = 0 ; i < num_pts ; i++) {
-        fp2_elem Ri = fp2_conv(NTL::resultant(h_I, E_Js[i]));
+        fp2_elem Ri = fp2_conv(Resultant(h_I, E_Js[i]));
         h_S[i] = Fp2_div(Fp2_mul(h_S[i], Ri), Del_IJ);
     }
 
