@@ -203,9 +203,6 @@ def getKernel(P, Q, L, Lpos, M):
     return K
 
 def getKernelPrecomputedEigen(P, Q, L, Lpos, omega, omega_bar):
-    lampos = 1708298732195233441796205849078049269809774359155278336331280856185673548093108801649110316273383324791940297639831593458851060986908148784492132745287237220884212999179490292014463937711260
-    lamneg = 21003476950938357369896031527264380182891980657183195527869820393272548129119708424839829416852343941922026863608741498103124098909400216982866894294803151154158272595988210522793797887274525
-
     wP = omega(P)
     wQ = omega(Q)
 
@@ -225,8 +222,10 @@ def getKernelPrecomputedEigen(P, Q, L, Lpos, omega, omega_bar):
         lam2s.append(lams[1])
 
     print("CRT lams:")
-    print(crt(lam1s, [ell for ell, _ in factor(L)]))
-    print(crt(lam2s, [ell for ell, _ in factor(L)]))
+    lampos = crt(lam1s, [ell for ell, _ in factor(L)])
+    lamneg = crt(lam2s, [ell for ell, _ in factor(L)])
+    print(lampos)
+    print(lamneg)
     print(f"L = {L}")
 
     Lneg = L//Lpos
@@ -271,6 +270,8 @@ def ActionIdeal(E, P, Q, Lpos, Lneg):
 
     L = Lpos*Lneg
 
+    ell_e = P.order()
+
     print("Computing torsion basis")
     B1, B2 = torsionBasis(E, L)
 
@@ -281,11 +282,11 @@ def ActionIdeal(E, P, Q, Lpos, Lneg):
     phi_P = E.isogeny(P, algorithm='factored')
     phi_Q = E.isogeny(Q, algorithm='factored')
 
-    Qm = completeBasis(E, 2**518, Q)
+    Qm = completeBasis(E, ell_e, Q)
     phi_Q_dual = phi_Q.codomain().isogeny(phi_Q(Qm), algorithm='factored')
     omega = phi_Q_dual.codomain().isomorphism_to(E) * phi_Q_dual * phi_P.codomain().isomorphism_to(phi_Q.codomain()) * phi_P
 
-    Pm = completeBasis(E, 2**518, P)
+    Pm = completeBasis(E, ell_e, P)
     phi_P_dual = phi_P.codomain().isogeny(phi_P(Pm), algorithm='factored')
     omega_bar = phi_P_dual.codomain().isomorphism_to(E) * phi_P_dual * phi_Q.codomain().isomorphism_to(phi_P.codomain()) * phi_Q
 
@@ -298,8 +299,12 @@ def ActionIdeal(E, P, Q, Lpos, Lneg):
 
     print("Evaluating isogeny")
     E_l = phi.codomain()
+
     P_l = phi(P)
     Q_l = phi(Q)
+
+    P_l.set_order(ell_e)
+    Q_l.set_order(ell_e)
 
     return E_l, P_l, Q_l
 
@@ -338,7 +343,10 @@ def GroupAction(E, K1, K2, vec, ells):
 if __name__ == "__main__":
     proof.all(False)
 
-    with open("STARTING_CURVE.txt", "r") as file:
+    #param_lvl = "1024"
+    param_lvl = "512"
+
+    with open("params_" + param_lvl + ".txt", "r") as file:
         p = Integer(literal_eval(file.readline()))
         F = GF((p,2), name='z2', modulus=var('x')**2 + 1)
         z2 = F.gens()[0]
@@ -347,21 +355,20 @@ if __name__ == "__main__":
         E.set_order((p+1)**2)
         P = E([F(c) for c in literal_eval(file.readline())])
         Q = E([F(c) for c in literal_eval(file.readline())])
+        ells = literal_eval(file.readline())
+        e = literal_eval(file.readline())
 
-    P.set_order(2**518)
-    Q.set_order(2**518)
+    P.set_order(2**e)
+    Q.set_order(2**e)
+    Qm = completeBasis(E, 2**e, Q)
 
-    
+    print(E)
+    print((P).xy()[0])
+    print((Q).xy()[0])
+    print((Qm).xy()[0])
 
-    with open("split_primes.txt", "r") as file:
-        ells = file.readline()
-
-
-    
-    ells = [int(ell) for ell in ells.split(" ")]
-
-    es = [randint(-5, 5) for _ in range(75)]
-    #es = [3 for _ in range(75)]
+    #es = [randint(-5, 5) for _ in range(75)]
+    es = [3 for _ in range(75)]
     #es = [0,-3,5,-2,-2,-1,1,16,14,6,5,-17,16,27,8,-34,6,9,1,2,19,-24,21,35,-2,41,-11,-5,60,-11,80,6,20,13,15,8,22,2,-21,-12,7,-19,-68,-39,9,-68,-13,33,2,-3,-6,-139,-1,-4,26,10,-6,1,18,-13,-31,13,14,-6,32,-14,6,0,-3,8,2,6,-4,0,11]
     GroupAction(E, P, Q, es, ells)
 

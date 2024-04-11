@@ -96,8 +96,8 @@ def choose_torsion(p, q, lowbound, newconst=None):
         if not is_pseudoprime(le.radical()):
             continue
         k = Mod(p, le).multiplicative_order()
-        if k%2 == 0 and pow(p, k//2, le) - le == -1: # Use twist in this case (cant just divide k by 2, since (ZZ/2^eZZ)^* is not cyclic...)
-            k //= 2
+        #if k%2 == 0 and pow(p, k//2, le) - le == -1: # Use twist in this case (cant just divide k by 2, since (ZZ/2^eZZ)^* is not cyclic...)
+        #    k //= 2
         facToExt[le] = k
 
     model = cost_model(p, newconst=newconst)
@@ -136,14 +136,14 @@ def choose_torsion(p, q, lowbound, newconst=None):
 
         # trial-divide the order in degree k to find new l^e
         on_curve = smoothPart(p**k - (-1)**k, maxle)
-        on_twist = smoothPart(p**k + (-1)**k, maxle)
-        for fac in (on_curve, on_twist):
-            for l,e in fac.factor():
-                for i in range(1,e+1):
-                    if l**i in facToExt:
-                        facToExt[l**i] = min(k, facToExt[l**i])
-                    else:
-                        facToExt[l**i] = k
+        #on_twist = smoothPart(p**k + (-1)**k, maxle)
+        #for fac in (on_curve, on_twist):
+        for l,e in on_curve.factor():
+            for i in range(1,e+1):
+                if l**i in facToExt:
+                    facToExt[l**i] = min(k, facToExt[l**i])
+                else:
+                    facToExt[l**i] = k
 
     facToExt = dict(sorted(facToExt.items(), key = lambda tup: tup[0].prime_factors()))
     assert T >= lowbound
@@ -205,21 +205,16 @@ def ActionMatrix(alpha, basis, ord):
     return [[a, b],[c,d]]
 
 proof.all(False)
-#f = Integer(817)
-#f = Integer(83)
-f = Integer(371)
-#e = 518
-e = 1554
-#N = Integer(22711775683133590811692237376342429238176828137256920271016701278225953126746258369874072200439826127375102732028076826684141799893454573890942633774296721382453081077340536135990593000334249)
-#N = prod([p for p in Primes()[:1000] if p not in [2, 3, 5, 23, 2593, 5857]][:150])
-N = prod([p for p in Primes()[:1000] if p not in [2, 3, 5, 23, 2593, 5857]][:100])
-p = Integer(2)**e*f*N - 1
+
+# 512
+p = Integer(167286323857221689112346016933207258999493176647479781908348180838625562682489086996433613891517156716513168813389511283523303877305870043625319556074092350622078682027926127121250390130545025689333161800187261717666012808114506310888652381411304126074312458239)
 
 F = GF((p,2), name='z2', modulus=var('x')**2 + 1)
 sqrtm1 = F.gens()[0]
 
 #filename = 'Precomputed/75-primes.py'
-filename = 'Precomputed/100-primes-2048.py'
+filename = 'Precomputed/75-primes-512.py'
+
 try:
     open(filename, "r")
     print('precomputed file already exists!')
@@ -227,7 +222,7 @@ except:
     assert is_pseudoprime(p)
 
     print("Choosing torsion....")
-    T, facToExt = choose_torsion(p, 1, (2**(0.57*RR(log(p,2)))))
+    T, facToExt = choose_torsion(p, 1, (2**(0.75*RR(log(p,2)))))
 
     T = ZZ(T) # Only for the big one
     print(f"Gonna find torsion = {factor(T)}")
