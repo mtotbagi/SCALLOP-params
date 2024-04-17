@@ -6,63 +6,9 @@
 
 #include "fp2.hpp"
 #include "montgomery.hpp"
+#include "poly.hpp"
 
-// Currently not working....
-// Also, NTL resultant computation is hella slow??
-
-std::vector<fp2_elem> Poly_mult(std::vector<fp2_elem> const &a, std::vector<fp2_elem> const &b) {
-    std::vector<fp2_elem> ab;
-
-    size_t m = a.size() - 1;
-    size_t n = b.size() - 1;
-    for (size_t i = 0 ; i <= m + n ; i++) {
-        fp2_elem coeff = Fp2_zero();
-        for (size_t j = 0 ; j <= std::min(i, m) ; j++) {
-            if (i-j <= n) {
-                coeff = Fp2_add(coeff, Fp2_mul(a[j], b[i-j]));
-            }
-        }
-        ab.push_back(coeff);
-    }
-
-    return ab;
-}
-
-std::vector<fp2_elem> Poly_add(std::vector<fp2_elem> const &a, std::vector<fp2_elem> const &b) {
-    std::vector<fp2_elem> a_sum_b;
-
-    size_t m = a.size() - 1;
-    size_t n = b.size() - 1;
-
-    for (size_t i = 0 ; i <= std::min(m, n) ; i++) {
-        a_sum_b.push_back(Fp2_add(a[i], b[i]));
-    }
-    if (m > n) {
-        for (size_t i = n; i <= m ; i++) {
-            a_sum_b.push_back(a[i]);
-        }
-    } else if (n > m) {
-        for (size_t i = m; i <= n ; i++) {
-            a_sum_b.push_back(b[i]);
-        }
-    }
-    return a_sum_b;
-}
-
-std::vector<fp2_elem> Poly_scale(fp2_elem const &a, std::vector<fp2_elem> const &b) {
-    std::vector<fp2_elem> ab;
-
-    for (fp2_elem const &b_coeff : b) {
-        ab.push_back(Fp2_mul(a, b_coeff));
-    }
-
-    return ab;
-}
-
-std::vector<fp2_elem> Xmin(fp2_elem const &a) {
-    return {Fp2_negative(a), Fp2_one()};
-}
-
+/*
 std::vector<fp2_elem> F0(fp2_elem const &a) {
 
     std::vector<fp2_elem> f0 = Xmin(a);
@@ -77,11 +23,9 @@ std::vector<fp2_elem> F1(fp2_elem const &a, fp2_elem const &A) {
     std::vector<fp2_elem> t2{a, Fp2_one()};
     t1 = Poly_mult(t1, t2);
     t0 = Poly_scale(Fp2_add(A, A), t0);
-
-    std::vector<fp2_elem> f1 = Poly_add(t0, t1);
-
+    t1 = Poly_add(t0, t1);
     fp2_elem min_two{NTL::ZZ_p(-2), NTL::ZZ_p(0)};
-    return Poly_scale(min_two, f1);
+    return Poly_scale(min_two, t1);
 }
 
 std::vector<fp2_elem> F2(fp2_elem const &a) {
@@ -89,70 +33,16 @@ std::vector<fp2_elem> F2(fp2_elem const &a) {
     return Poly_mult(f2, f2);
 }
 
-// Product tree (from SCALLOP code)
-std::vector<fp2_elem> product_tree(std::vector<std::vector<fp2_elem>> const &leaves) {
-            if (leaves.empty())
-                throw std::logic_error("no leaves");
-            auto prev = leaves; //<- copies leaves to not modify the original list...
-            while (prev.size() > 1) {
-                std::vector<std::vector<fp2_elem>> next;
-                {
-                    for (size_t i = 0; i < prev.size()-1; i += 2)
-                        next.push_back(Poly_mult(prev[i], prev[i+1]));
-                    if (prev.size() % 2)
-                        next.push_back(prev.back());
-                }
-                prev = next;
-            }
-            return prev[0];
-        };
-
-NTL::ZZ_pE ntl(fp2_elem const &a) {
-    NTL::ZZ_pX a_poly;
-    NTL::ZZ_pE a_ntl;
-
-
-    NTL::SetCoeff(a_poly, 1);
-    a_poly[0] = a.first;
-    if (!IsZero(a.second)) {
-        a_poly[1] = a.second;
-    }
-
-    NTL::conv(a_ntl, a_poly);
-
-    return a_ntl;
-}
-
-fp2_elem fp2_conv(NTL::ZZ_pE const &a) {
-    return {NTL::rep(a)[0], NTL::rep(a)[1]};
-}
-
-NTL::ZZ_pE Resultant(std::vector<fp2_elem> const &a, std::vector<fp2_elem> const &b) {
-    NTL::vec_ZZ_pE a_vec, b_vec;
-    NTL::ZZ_pEX a_ntl, b_ntl;
-    for (fp2_elem const &a_coeff : a) {
-        a_vec.append(ntl(a_coeff));
-    }
-    for (fp2_elem const &b_coeff : b) {
-        b_vec.append(ntl(b_coeff));
-    }
-    NTL::conv(a_ntl, a_vec);
-    NTL::conv(b_ntl, b_vec);
-
-    return NTL::resultant(a_ntl, b_ntl);
-}
-
 ProjA SqrtVELU(xPoint &Q, ProjA &A, int ell, std::vector<xPoint> &evalPts) {
     
     NormalizeCoeff(A); 
     NormalizePoint(Q);
-    NTL::ZZ_pE A_ntl = ntl(A.first);
     fp2_elem Del_IJ;
 
-    std::vector<std::vector<fp2_elem>> h_I_list, D_J_list;   
-    std::vector<std::vector<std::vector<fp2_elem>>> E_Js_list;
+    std::vector<fp2X_elem> h_I_list, D_J_list;
 
-    std::vector<NTL::ZZ_pE> alphas;
+    std::vector<std::vector<fp2X_elem>> E_Js_list;
+
     std::vector<fp2_elem> eval_xi;
 
     eval_xi.push_back(Fp2_one());
@@ -164,11 +54,6 @@ ProjA SqrtVELU(xPoint &Q, ProjA &A, int ell, std::vector<xPoint> &evalPts) {
         eval_xi.push_back(P.first);        
         eval_xi.push_back(Fp2_inv(P.first));
     }
-
-    for (fp2_elem const &xi : eval_xi) {
-        alphas.push_back(ntl(xi));
-    }
-
 
     std::vector<int> I, J, K;
 
@@ -195,6 +80,8 @@ ProjA SqrtVELU(xPoint &Q, ProjA &A, int ell, std::vector<xPoint> &evalPts) {
 
     xPoint sQ = xMUL(Q, NTL::ZZ(I_step), A);
 
+
+    auto start = std::chrono::steady_clock::now();
     for (size_t i = I_start + I_step ; i < I_end ; i += I_step) {
         xPoint Rold = R;
         R = xADD(R, sQ, diff);
@@ -203,10 +90,17 @@ ProjA SqrtVELU(xPoint &Q, ProjA &A, int ell, std::vector<xPoint> &evalPts) {
         h_I_list.push_back(Xmin(R.first));
         diff = Rold;
     }
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
+    std::cout << "Iterating over I took: " << duration.count() << " microseconds" << std::endl;
 
-    std::vector<fp2_elem> h_I = product_tree(h_I_list);
+    start = std::chrono::steady_clock::now();
+    auto h_I_tree = product_tree(h_I_list);
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
+    std::cout << "Product tree took: " << duration.count() << " microseconds" << std::endl;
 
-    size_t num_pts = alphas.size();
+    std::vector<fp2_elem> h_I = h_I_tree[0][0];
+
+    size_t num_pts = eval_xi.size();
 
     // loop through J
     R = Q;
@@ -215,6 +109,7 @@ ProjA SqrtVELU(xPoint &Q, ProjA &A, int ell, std::vector<xPoint> &evalPts) {
     std::vector<fp2_elem> F0q = F0(xq);
     std::vector<fp2_elem> F1q = F1(xq, A.first);
     std::vector<fp2_elem> F2q = F2(xq);
+    
 
     for (fp2_elem const &alpha : eval_xi) {
         std::vector<fp2_elem> f = Poly_scale(Fp2_sqr(alpha), F0q);
@@ -228,6 +123,7 @@ ProjA SqrtVELU(xPoint &Q, ProjA &A, int ell, std::vector<xPoint> &evalPts) {
     sQ = xDBL(Q, A);
     diff = Q;
 
+    start = std::chrono::steady_clock::now();
     for (size_t j = J_start + J_step; j < J_end; j += J_step) {
         xPoint Rold = R;
         R = xADD(R, sQ, diff);
@@ -235,7 +131,10 @@ ProjA SqrtVELU(xPoint &Q, ProjA &A, int ell, std::vector<xPoint> &evalPts) {
 
         assert (PointEqual(R, xMUL(Q, NTL::ZZ(j), A)));
 
-        NTL::ZZ_pE xq = ntl(R.first);
+        fp2_elem xq = R.first;
+        F0q = F0(xq);
+        F1q = F1(xq, A.first);
+        F2q = F2(xq);
 
         for (size_t i = 0 ; i < num_pts ; i++) {        
             std::vector<fp2_elem> f = Poly_scale(Fp2_sqr(eval_xi[i]), F0q);
@@ -247,14 +146,41 @@ ProjA SqrtVELU(xPoint &Q, ProjA &A, int ell, std::vector<xPoint> &evalPts) {
         diff = Rold;
     }
 
-    std::vector<fp2_elem> D_J = product_tree(D_J_list);
-    std::vector<std::vector<fp2_elem>> E_Js;
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
+    std::cout << "Iterating over J took: " << duration.count() << " microseconds" << std::endl;
 
-    for (std::vector<std::vector<fp2_elem>> E_J_list : E_Js_list) {
-        E_Js.push_back(product_tree(E_J_list));
+    start = std::chrono::steady_clock::now();
+    fp2X_elem D_J = product_tree(D_J_list)[0][0];
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
+    std::cout << "D_J product tree: " << duration.count() << " microseconds" << std::endl;
+
+    start = std::chrono::steady_clock::now();
+    fp2X_elem D_J_lin = D_J_list[0];
+    for (size_t i = 1 ; i < D_J_list.size() ; i++) {
+        D_J_lin = Poly_mult(D_J_lin, D_J_list[i]);
     }
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
+    std::cout << "D_J linear tree: " << duration.count() << " microseconds" << std::endl;
 
-    Del_IJ = fp2_conv(Resultant(h_I, D_J));
+    std::vector<fp2X_elem> E_Js;
+
+    start = std::chrono::steady_clock::now();
+    for (std::vector<fp2X_elem> E_J_list : E_Js_list) {
+        start = std::chrono::steady_clock::now();
+        E_Js.push_back(product_tree(E_J_list)[0][0]);
+        duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
+        std::cout << "E_J product tree: " << duration.count() << " microseconds" << std::endl;
+    }
+    //Del_IJ = fp2_conv(Resultant(h_I, D_J));
+    start = std::chrono::steady_clock::now();
+    auto h_I_tree_rev_inv = rev_inv_tree(h_I_tree, D_J);
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
+    std::cout << "Computing rev_inv_tree took: " << duration.count() << " microseconds" << std::endl;
+
+    start = std::chrono::steady_clock::now();
+    Del_IJ = Fast_Resultant(D_J, h_I_tree, h_I_tree_rev_inv);
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
+    std::cout << "Resultant took: " << duration.count() << " microseconds" << std::endl;
 
     std::vector<fp2_elem> h_S;
 
@@ -265,6 +191,7 @@ ProjA SqrtVELU(xPoint &Q, ProjA &A, int ell, std::vector<xPoint> &evalPts) {
         h_S.push_back(Fp2_sub(alpha, R.first));
     }
 
+    start = std::chrono::steady_clock::now();
     diff = xMUL(Q, NTL::ZZ((K_start - K_step) % ell), A);
     for (size_t k = K_start + K_step; k < K_end ; k += K_step) {
         xPoint Rold = R;
@@ -278,11 +205,17 @@ ProjA SqrtVELU(xPoint &Q, ProjA &A, int ell, std::vector<xPoint> &evalPts) {
         }
         diff = Rold;
     }
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
+    std::cout << "Iterating over K took: " << duration.count() << " microseconds" << std::endl;
 
     for (size_t i = 0 ; i < num_pts ; i++) {
-        fp2_elem Ri = fp2_conv(Resultant(h_I, E_Js[i]));
+        start = std::chrono::steady_clock::now();
+        fp2_elem Ri = Fast_Resultant(E_Js[i], h_I_tree, h_I_tree_rev_inv);
         h_S[i] = Fp2_div(Fp2_mul(h_S[i], Ri), Del_IJ);
+        duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
+        std::cout << "E_J resultant took: " << duration.count() << " microseconds" << std::endl;
     }
+    
 
     //Codomain curve
     fp2_elem two{NTL::ZZ_p(2), NTL::ZZ_p(0)};
@@ -318,3 +251,4 @@ ProjA SqrtVELU(xPoint &Q, ProjA &A, int ell, std::vector<xPoint> &evalPts) {
 
     return A_new;
 }
+*/

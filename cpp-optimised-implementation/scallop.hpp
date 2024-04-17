@@ -35,21 +35,21 @@ ProjA ActionIdealStep(xPoint &P, xPoint &Q, xPoint &Qm, ProjA A, NTL::ZZ Lpos, N
     //Computing omega
     std::cout << "Computing kernel generator.... " << std::endl;
     
-    std::vector<xPoint> KerGens_1, KerGens_2, KerGens_3;
-    ProjA Am = TwoIsogChainPrecompute(P, A, strat, KerGens_1);
+    std::vector<IsogConsts> KerGens_1, KerGens_2, KerGens_3;
+    ProjA Am = FourIsogChainPrecompute(P, A, strat, KerGens_1);
 
-    ProjA Amm = TwoIsogChainPrecompute(Q, A, strat, KerGens_2);
+    ProjA Amm = FourIsogChainPrecompute(Q, A, strat, KerGens_2);
 
     auto ur = IsomorphismConstants(Amm, Am);
-    xPoint Qmm = TwoIsogChainEvaluate(Qm, KerGens_2);
+    xPoint Qmm = FourIsogChainEvaluate(Qm, KerGens_2);
 
     Qmm = IsomorphismEval(Qmm, ur);
-    ProjA A_start = TwoIsogChainPrecompute(Qmm, Am, strat, KerGens_3);
+    ProjA A_start = FourIsogChainPrecompute(Qmm, Am, strat, KerGens_3);
 
     auto ur_home = IsomorphismConstants(A_start, A);
 
-    xPoint wK = TwoIsogChainEvaluate(K, KerGens_1);
-    wK = TwoIsogChainEvaluate(wK, KerGens_3);
+    xPoint wK = FourIsogChainEvaluate(K, KerGens_1);
+    wK = FourIsogChainEvaluate(wK, KerGens_3);
     wK = IsomorphismEval(wK, ur_home);
 
     auto PointDiff = xADDSUB(wK, K, A);
@@ -61,8 +61,8 @@ ProjA ActionIdealStep(xPoint &P, xPoint &Q, xPoint &Qm, ProjA A, NTL::ZZ Lpos, N
         Kp = xMUL(Kp, Lneg, A);
 
         // Test that we got the correct sign
-        xPoint wKp = TwoIsogChainEvaluate(Kp, KerGens_1);
-        wKp = TwoIsogChainEvaluate(wKp, KerGens_3);
+        xPoint wKp = FourIsogChainEvaluate(Kp, KerGens_1);
+        wKp = FourIsogChainEvaluate(wKp, KerGens_3);
         wKp = IsomorphismEval(wKp, ur_home);
         assert (IsIdentity(xMUL(wKp, Lpos, A)));
         xPoint lamKp = xMUL(Kp, lampos, A);
@@ -83,8 +83,8 @@ ProjA ActionIdealStep(xPoint &P, xPoint &Q, xPoint &Qm, ProjA A, NTL::ZZ Lpos, N
         Kn = Ladder3pt(wK, K, PointDiff.first, (lampos % Lneg), A);
 
         // Test that we got the correct sign
-        xPoint wKn = TwoIsogChainEvaluate(Kn, KerGens_1);
-        wKn = TwoIsogChainEvaluate(wKn, KerGens_3);
+        xPoint wKn = FourIsogChainEvaluate(Kn, KerGens_1);
+        wKn = FourIsogChainEvaluate(wKn, KerGens_3);
         wKn = IsomorphismEval(wKn, ur_home);
         assert (IsIdentity(xMUL(wKn, Lneg, A)));
         xPoint lamKn = xMUL(Kn, lamneg, A);

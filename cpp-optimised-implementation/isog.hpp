@@ -6,6 +6,8 @@
 #include "fp2.hpp"
 #include "montgomery.hpp"
 
+typedef std::tuple<fp2_elem, fp2_elem, fp2_elem> IsogConsts;
+
 ProjA ProjAToProjAC(ProjA A) {
     fp2_elem C24 = Fp2_add(A.second, A.second);
     fp2_elem A24 = Fp2_add(A.first, C24);
@@ -41,7 +43,6 @@ ProjA TwoIsoCurve(xPoint const &P, xPoint &K) {
 }
 
 xPoint TwoIsogEval(xPoint const &Q, xPoint const &K) {
-
 	fp2_elem t0 = Fp2_add(Q.first, Q.second);
 	fp2_elem t1 = Fp2_sub(Q.first, Q.second);
 	fp2_elem t2 = Fp2_mul(K.first, t1);
@@ -116,6 +117,108 @@ xPoint TwoIsogChainEvaluate(xPoint P, std::vector<xPoint> const &KerGens) {
     }
     return P;
 }
+
+ProjA FourIsogCurve(xPoint const &P, IsogConsts &Ks) {
+	fp2_elem K0 = Fp2_sqr(P.first);
+	fp2_elem K1 = Fp2_sqr(P.second);
+	fp2_elem K2 = Fp2_add(K1, K0);
+	fp2_elem K3 = Fp2_sub(K1, K0);
+
+	fp2_elem A24plus = Fp2_mul(K2, K3);
+	fp2_elem C24 = Fp2_sqr(K1);
+
+	fp2_elem K4 = Fp2_add(P.first, P.second);
+	K2 = Fp2_sub(P.first, P.second);
+	K0 = Fp2_add(K1, K1);
+	K0 = Fp2_add(K0, K0);
+
+    Ks = {K0, K2, K4};
+
+	return {A24plus, C24};
+}
+
+xPoint FourIsogEval(xPoint const &Q, IsogConsts const &K) {
+	fp2_elem t0 = Fp2_add(Q.first, Q.second);
+	fp2_elem t1 = Fp2_sub(Q.first, Q.second);
+	fp2_elem QEvalX = Fp2_mul(t0, std::get<1>(K));
+	fp2_elem QEvalZ = Fp2_mul(t1, std::get<2>(K));
+	t0 = Fp2_mul(t0, t1);
+	t0 = Fp2_mul(t0, std::get<0>(K));
+	t1 = Fp2_add(QEvalX, QEvalZ);
+	QEvalZ = Fp2_sub(QEvalX, QEvalZ);
+	t1 = Fp2_sqr(t1);
+	QEvalZ = Fp2_sqr(QEvalZ);
+	QEvalX = Fp2_add(t0, t1);
+	t0 = Fp2_sub(t0, QEvalZ);
+	QEvalX = Fp2_mul(QEvalX, t1);
+	QEvalZ = Fp2_mul(QEvalZ, t0);
+
+	return {QEvalX, QEvalZ};
+}
+
+ProjA FourIsogChainPrecompute(xPoint const &Q, ProjA &A_in, std::vector<int> const &strategy, std::vector<IsogConsts> &KerGens) {
+
+    size_t MAX = strategy.size() + 1;
+    std::vector<xPoint> pts;
+    pts.reserve(MAX);
+    std::vector<size_t> pts_index;
+    pts_index.reserve(MAX);
+	size_t npts = 0;
+	size_t ii = 0;
+
+    xPoint P = Q;
+    size_t index = 0;
+
+    ProjA A = A_in;
+    ProjA A24;
+    IsogConsts K;
+
+    for (size_t row = 1; row < MAX; row++) {
+        while (index < (MAX - row)) {
+            if (!(row == 1)) {
+                pts[npts] = P;
+                pts_index[npts] = index;
+            } else {
+                pts.push_back(P);
+                pts_index.push_back(index);
+            }
+            npts += 1;
+            int m = strategy[ii];
+            ii += 1;
+            P = xDBLe(P, 2*m, A); // Strategy is for 4-isogenies/quadruplings
+            index += m;
+        }
+
+        assert (!(IsIdentity(xDBL(P, A))));
+        assert (IsIdentity(xDBL(xDBL(P, A), A)));
+
+        A24 = FourIsogCurve(P, K);
+        KerGens.push_back(K);
+        for (size_t i = 0; i < npts; i++) {
+            pts[i] = FourIsogEval(pts[i], K);
+        }
+
+        P = pts[npts-1];
+        index = pts_index[npts - 1];
+        npts -= 1;
+        A = ProjACToProjA(A24);
+    }
+
+    A24 = FourIsogCurve(P, K);
+    KerGens.push_back(K);
+    A = ProjACToProjA(A24);
+
+    return A;
+}
+
+xPoint FourIsogChainEvaluate(xPoint P, std::vector<IsogConsts> const &KerGens) {
+    for (IsogConsts const &K : KerGens) {
+        P = FourIsogEval(P, K);
+    }
+    return P;
+}
+
+
 
 std::pair<fp2_elem, fp2_elem> IsomorphismConstants(ProjA &A, ProjA &Am) {
     // returns u^2 and r
