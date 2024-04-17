@@ -1,13 +1,9 @@
 #include <NTL/ZZ.h>
-#include <NTL/ZZ_pE.h>
-#include <NTL/ZZ_pX.h>
 
 #include "montgomery.hpp"
 #include "fp2.hpp"
 #include "isog.hpp"
 #include "scallop.hpp"
-#include "sqrt_velu.hpp"
-#include "poly.hpp"
 
 
 void test_fp2_arith()
@@ -153,127 +149,6 @@ void test_ec_params_1024()
     std::cout << "  Success!\n\n\n\n" << std::endl;
 }
 
-void time_poly() {
-    std::cout << "Testing timings" << std::endl;
-    NTL::ZZ_p::init(p);
-    int lenf = 512;
-    int leng = 512;
-    fp2_elem f[lenf], g[leng];
-
-    for (size_t i = 0 ; i < lenf ; i++) {
-        fp2_elem c1{NTL::random_ZZ_p(), NTL::random_ZZ_p()};
-        f[i] = c1;
-    }
-
-    for (size_t i = 0 ; i < leng ; i++) {
-        fp2_elem c1{NTL::random_ZZ_p(), NTL::random_ZZ_p()};
-        g[i] = c1;
-    }
-
-    int lenh = lenf + leng - 1;
-    fp2_elem h[lenf + leng - 1], h_naive[lenf + leng - 1];
-
-    auto start = std::chrono::steady_clock::now();
-    Poly_mult_naive(h_naive, f, lenf, g, leng);
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
-    std::cout << "Mult naive took: " << duration.count() << " microseconds" << std::endl;
-
-    start = std::chrono::steady_clock::now();
-    Poly_mult(h, f, lenf, g, leng);
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
-    std::cout << "Mult took: " << duration.count() << " microseconds" << std::endl;
-
-    assert (Poly_equal(h, lenh, h_naive, lenh));
-
-    /*start = std::chrono::steady_clock::now();
-    auto h1 = Poly_mult_low(100, f, g);
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
-    std::cout << "Mult low: " << duration.count() << " microseconds" << std::endl;
-
-    for (size_t i = 0 ; i < 100 ; i++) {
-        assert (Fp2_equal(h0[i], h1[i]));
-    }*/
-
-    fp2_elem f_sum_g[std::max(lenf, leng)];
-    start = std::chrono::steady_clock::now();
-    Poly_add(f_sum_g, f, lenf, g, leng);
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
-    std::cout << "Add took: " << duration.count() << " microseconds" << std::endl;
-
-    start = std::chrono::steady_clock::now();
-    Poly_sub(f_sum_g, f, lenf, g, leng);
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
-    std::cout << "Sub took: " << duration.count() << " microseconds" << std::endl;
-}
-/*
-void test_sqrtVelu() {
-    std::cout << "Testing sqrtVelu" << std::endl;
-    NTL::ZZ_p::init(p);
-
-    //Fp2 - Needed for sqrtVelu
-    NTL::ZZ_pX f;
-    SetCoeff(f, 2);
-    f[0] = NTL::ZZ_p(1);
-    NTL::ZZ_pE::init(f);
-
-    NTL::ZZ_p A_0, A_1;
-    NTL::conv(A_0, A_re);
-    NTL::conv(A_1, A_im);
-
-    ProjA A{{A_0, A_1}, Fp2_one()};
-
-    NTL::ZZ_p P_0, P_1, Q_0, Q_1, Qm_0, Qm_1;
-    NTL::conv(P_0, P_re);
-    NTL::conv(P_1, P_im);
-    NTL::conv(Q_0, Q_re);
-    NTL::conv(Q_1, Q_im);
-    NTL::conv(Qm_0, Qm_re);
-    NTL::conv(Qm_1, Qm_im);
-
-    xPoint P{{P_0, P_1}, Fp2_one()};
-    xPoint Q{{Q_0, Q_1}, Fp2_one()};
-    xPoint Qm{{Qm_0, Qm_1}, Fp2_one()};
-
-
-
-    int ell = 971;
-    //int ell = 61*971;
-    //int ell = 641*971;
-
-    xPoint K = PointOfOrderDividing(A, NTL::ZZ(ell));
-    NormalizePoint(K);
-    assert (!(IsIdentity(K)));
-
-    std::vector<xPoint> evalPts{P, Q, Qm};
-
-    auto start = std::chrono::steady_clock::now();
-    ProjA A2;
-    int rep = 1;
-    for (int i = 0; i < rep; i++) {
-        std::vector<xPoint> evalPts_t = evalPts;
-        A2 = xISOG(K, A, ell, evalPts_t);
-    }
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
-
-    std::cout << "Velu took: " << duration.count() << " milliseconds" << std::endl;
-
-    start = std::chrono::steady_clock::now();
-
-    ProjA A2m;
-    for (int i = 0; i < rep; i++) {
-        std::vector<xPoint> evalPts_t = evalPts;
-        A2m = SqrtVELU(K, A, ell, evalPts_t);
-    }
-    duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
-
-    std::cout << "SqrtVelu took: " << duration.count() << " milliseconds" << std::endl;
-
-    assert (Fp2_equal(jInvariant(A2), jInvariant(A2m)));
-
-    std::cout << "  Success!\n\n\n\n" << std::endl;
-
-}*/
-
 void time_four_isog_mult()
 {
     std::cout << "Timing four isog vs double double" << std::endl;
@@ -385,8 +260,6 @@ int main()
 {
     //test_fp2_arith();
     //test_ec_params_1024();
-    //test_sqrtVelu();
-    //time_poly();
     //time_four_isog_mult();
     test_scallop();
     return 0;
