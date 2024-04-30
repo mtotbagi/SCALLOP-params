@@ -95,7 +95,7 @@ def choose_torsion(p, q, lowbound, newconst=None):
             continue
         if not is_pseudoprime(le.radical()):
             continue
-        k = Mod(p, le).multiplicative_order()
+        k = Mod(p, le).multiplicative_order()*2
         #if k%2 == 0 and pow(p, k//2, le) - le == -1: # Use twist in this case (cant just divide k by 2, since (ZZ/2^eZZ)^* is not cyclic...)
         #    k //= 2
         facToExt[le] = k
