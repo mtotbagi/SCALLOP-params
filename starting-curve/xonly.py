@@ -124,6 +124,7 @@ class xPoint:
         F2 = E.base_field()
         Fbig = x.parent()
         ### wtf ###
+        print("asd")
         ext = Fbig.over(F2)
         ###########
         R,X = F2['X'].objgen()

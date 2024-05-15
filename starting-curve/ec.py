@@ -1,16 +1,14 @@
 from sage.all import *
 from xonly import isMontgomery, xPoint, sqrtDeterministic
-
+import time
 #############################
 #                           #
 #        Basis-stuff        #
 #                           #
 #############################
-    
-def CompleteBasis(R, D, x = 1):
-    E = R.curve()
-    i = E.base_field().gens()[0]
-    cof = sqrt(E.order())/D 
+
+
+def is_independent(R, S, D):
     facD = factor(D)
     Drad = radical(D)
     Rsmalls = []
@@ -20,20 +18,106 @@ def CompleteBasis(R, D, x = 1):
         assert Rsmalli
         Rsmalls.append(Rsmalli)
 
-    for _ in range(1000):
+    Ssmall = S*(D/Drad)
+    for index, (l, e) in enumerate(facD):
+        Ssmalli = Ssmall*(Drad/l)
+        if (Rsmalls[index].weil_pairing(Ssmalli, l) == 1):
+            return False
+    return True
+
+def has_order(P, D):
+    Drad = radical(D)
+    Dfac = factor(D)
+    Psmall = P*(D/Drad)
+    for (l, e) in Dfac:
+        if not Psmall*(Drad/l):
+            return False
+    return not Psmall*Drad
+
+def frob(P):
+    p = P.x().parent().characteristic()
+    xQ = P.x() ** (p ** 2)
+    yQ = P.y() ** (p ** 2)
+    return P.curve()(xQ, yQ)
+
+def mult_with_pol(P, pol):
+    if isinstance(pol, int) or isinstance(pol, Integer):
+        return pol * P
+    frobs = [P]
+    for j in range(pol.degree()):
+        frobs.append(-frob(frobs[-1]))
+    return sum([a*Q for a, Q in zip(pol.list(), frobs)])
+
+def mult_w_frob(P, N):
+    R = ZZ['x']
+    D = Integer(sqrt(P.curve().order()) // N)
+    p = P.x().parent().characteristic()
+
+    degs = []
+    rem = 0
+
+    extdeg = P.x().parent().degree() // 2
+    if(extdeg % 4 == 0):
+        rem = R.cyclotomic_polynomial(extdeg)(p) // D
+        degs = divisors(extdeg)
+        degs.pop(len(degs)-1)
+    elif (extdeg % 2 == 1):
+        rem = R.cyclotomic_polynomial(2*extdeg)(p) // D
+        degs = [2*i for i in divisors(extdeg)]
+        degs.pop(len(degs)-1)
+    else:
+        rem = R.cyclotomic_polynomial(extdeg//2)(p) // D
+        degs = [i for i in divisors(extdeg)]
+        degs.pop(len(degs)-2)
+
+    pol = prod([R.cyclotomic_polynomial(i) for i in degs])
+    res = mult_with_pol(P, pol)
+    res = rem * res
+    return res
+
+    
+def Torsion_Point(E, D):
+    F = E.base_field()
+    k = F.degree() // 2
+    cof = Integer(sqrt(E.order())/D)
+    i = F.gens()[0]
+    x = 1 + ZZ.random_element(1000) * i
+    while True:
         x += i
         try:
-            S = E.lift_x(x)*cof
+            P = E.lift_x(x)
         except:
             continue
-        Ssmall = S*(D/Drad)
-        basis = True
-        for index, (l, e) in enumerate(facD):
-            Ssmalli = Ssmall*(Drad/l)
-            if (not Ssmalli) or (Rsmalls[index].weil_pairing(Ssmalli, l) == 1):
-                basis = False
-                break
-        if basis:
+        T = mult_w_frob(P, cof)
+        #assert E.is_on_curve(T.x(), T.y())
+        #assert has_order(T, D)
+        #assert T == cof * P
+        if has_order(T, D):
+            T.set_order(D)
+            return T
+
+def CompleteBasis(R, D, x = 1, E0 = None):
+    E = R.curve()
+    F = E.base_field()
+    i = F.gens()[0]
+
+    if(E0 is not None):
+        a = E0.base_field().gens()[0]
+        xx, yy = R.xy()
+        v = -xx
+        w = (E.base_field())(a) * yy
+        S = E([v, w])
+        if(is_independent(R, S, D) and has_order(S, D)): 
+            return S
+        p = E0.base_field().characteristic()
+        v =(E.base_field())(a) * yy
+        S = E(xx**(p*p), yy**(p*p))
+        if(is_independent(R, S, D) and has_order(S, D)): 
+            return S
+
+    for _ in range(1000):
+        S = Torsion_Point(E, D)
+        if is_independent(R, S, D):
             RmS = point_difference(R, S)
             if RmS != (R - S).xy()[0]:
                 S = -S
@@ -42,86 +126,12 @@ def CompleteBasis(R, D, x = 1):
             return S
     assert False, "Something went wrong in Complete Basis..."
 
-def TorsionBasis(E, D, xOnly = 0, seeds = None, small_ns = None, small_s = None):
-    i = E.base_field().gens()[0]
-    x = Integer(1)
-    cof = sqrt(E.order())/D
-    facD = factor(D)
-    Drad = radical(D)    
-    ## case 1: With seeds ##
-    if seeds:
-        p, q = seeds
-        # Multiply by cofactor after, because of verification shenanigans
-        P = E.lift_x(p)
-        Q = E.lift_x(q)
-        PmQ = point_difference(P, Q)
-        if PmQ != (P - Q).xy()[0]:
-            Q = -Q
-            assert PmQ == (P - Q).xy()[0]
-        P, Q = P*cof, Q*cof
-        return P, Q
-    ## case 2: Generate basis + seeds ##
-    if small_ns and small_s:
-        #P point
-        for n, x in enumerate(small_ns):
-            try:
-                P = E.lift_x(x)
-            except:
-                continue
-            Pexp = P*cof
-            Psmall = Pexp*(D/Drad)
-            fullorder = True
-            for (l, e) in facD:
-                if not Psmall*(Drad/l):
-                    fullorder = False
-                    break
-            if fullorder:
-                Pexp.set_order(D)
-                break
-        Psmalls = []
-        for (l, e) in facD:
-            Psmalli = Psmall*(Drad/l)
-            assert Psmalli
-            Psmalls.append(Psmalli)
-        # Q point
-        for m, x in enumerate(small_s):
-            try:
-                Q = E.lift_x(x)
-            except:
-                continue
-            Qexp = Q*cof
-            Qsmall = Qexp*(D/Drad)
-            basis = True
-            for index, (l, e) in enumerate(facD):
-                Qsmalli = Qsmall*(Drad/l)
-                if (not Qsmalli) or (Psmalls[index].weil_pairing(Qsmalli, l) == 1):
-                    basis = False
-                    break
-            if basis:
-                Qexp.set_order(D)
-                break
-        PmQ = point_difference(P, Q)
-        if PmQ != (P - Q).xy()[0]:
-            Qexp = -Qexp
-        return Pexp, Qexp, (n, m)
-    
-    ## Case 3: No seeds involved
-    while True:
-        x += i
-        try:
-            P = E.lift_x(x)*cof
-        except:
-            continue
-        Psmall = P*(D/Drad)
-        fullorder = True
-        for (l, e) in facD:
-            if not Psmall*(Drad/l):
-                fullorder = False
-                break
-        if fullorder:
-            P.set_order(D)
-            break
-    Q = CompleteBasis(P, D)
+def TorsionBasis(E, D, xOnly = 0, E0 = None):
+    start = time.time()
+    P = Torsion_Point(E, D)
+    Q = CompleteBasis(P, D, E0 = E0)
+    end = time.time()
+    print(f"Basis in torsion {D} found in: {end - start}")
     if xOnly == 1:
         return P, Q
     PmQ = P-Q
