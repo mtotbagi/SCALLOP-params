@@ -74,7 +74,7 @@ def choose_torsion(p, lowbound, max_ext = 100, max_tors = 50000):
             if facToExt[le] == k: extToFac[k].append(le)
         if extToFac[k] == []: del extToFac[k]
 
-    tups = sorted(extToFac.items(), key=lambda item: cost(item[0])/lcm(item[1]))
+    tups = sorted(extToFac.items(), key=lambda item: cost(item[0])/log(lcm(item[1])))
     T = ZZ.one()
     it = 0
     for k, torsions in tups:
@@ -91,7 +91,7 @@ def choose_torsion(p, lowbound, max_ext = 100, max_tors = 50000):
         print(f"{extToFac[extdeg]}")
 
     def shave_excess(T, extToFac, B):
-        tups = sorted(extToFac.items(), key=lambda item: -cost(item[0])/lcm(item[1]))
+        tups = sorted(extToFac.items(), key=lambda item: -cost(item[0])/log(lcm(item[1])))
         for k, l in tups:
             if T//lcm(l) > B:
                 print(f"Removing torsions {l}, from extdeg {k}")
