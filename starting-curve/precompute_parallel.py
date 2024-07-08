@@ -38,9 +38,9 @@ def which_pol_from_extdeg(extdeg):
     elif (extdeg % 2 == 1): return 2*extdeg
     else: return extdeg//2
 
-R = ZZ['x']
+PolRing = ZZ['x']
 def cyclpol_from_extdeg(extdeg):
-    return R.cyclotomic_polynomial(which_pol_from_extdeg(extdeg))
+    return PolRing.cyclotomic_polynomial(which_pol_from_extdeg(extdeg))
 
 def cost(k):
     if k == 1: return 0
@@ -49,7 +49,10 @@ def cost(k):
     mul = poldeg * k * float(sqrt(k)) / 2.58
     return mul
 
-def choose_torsion(p, lowbound, max_ext = 100, max_tors = 50000):
+def choose_torsion(p, lowbound, max_ext = 100, max_tors = None):
+    if max_tors is None:
+        max_tors = int(log(p, 2) * 25)
+        print(max_tors)
     facToExt = dict()
     ords = {i: cyclpol_from_extdeg(i)(p) for i in range(1, max_ext)}
     le = ZZ.one()
@@ -70,14 +73,14 @@ def choose_torsion(p, lowbound, max_ext = 100, max_tors = 50000):
     #print(tups)
     #print()
 
-    extToFac = dict()
+    degToFac = dict()
     for k in range(1, 100):
-        extToFac[k] = []
+        degToFac[k] = []
         for le in facToExt.keys():
-            if facToExt[le] == k: extToFac[k].append(le)
-        if extToFac[k] == []: del extToFac[k]
+            if facToExt[le] == k: degToFac[k].append(le)
+        if degToFac[k] == []: del degToFac[k]
 
-    tups = sorted(extToFac.items(), key=lambda item: cost(item[0])/log(lcm(item[1])))
+    tups = sorted(degToFac.items(), key=lambda item: cost(item[0])/log(lcm(item[1])))
     T = ZZ.one()
     it = 0
     for k, torsions in tups:
@@ -88,27 +91,27 @@ def choose_torsion(p, lowbound, max_ext = 100, max_tors = 50000):
     
     assert T >= lowbound
     print("Extdegs with their torsions")
-    extToFac = dict(tups[:it])
-    for extdeg in extToFac.keys():
+    degToFac = dict(tups[:it])
+    for extdeg in degToFac.keys():
         print(f"{extdeg}")
-        print(f"{extToFac[extdeg]}")
+        print(f"{degToFac[extdeg]}")
 
-    def shave_excess(T, extToFac, B):
-        tups = sorted(extToFac.items(), key=lambda item: -cost(item[0])/log(lcm(item[1])))
+    def shave_excess(T, degToFac, B):
+        tups = sorted(degToFac.items(), key=lambda item: -cost(item[0])/log(lcm(item[1])))
         for k, l in tups:
             if T//lcm(l) > B:
                 print(f"Removing torsions {l}, from extdeg {k}")
-                del extToFac[k]
-                return shave_excess(T//lcm(l), extToFac, B)
-        return T, extToFac
+                del degToFac[k]
+                return shave_excess(T//lcm(l), degToFac, B)
+        return T, degToFac
     
     #We picked each extension by cost, and it is possible that with the last one we have extra torsion
     #which we can shave off
     #It is possible that this will not be "optimal", but should be close enough
     print("Shaving off excess torsions...")
-    T, extToFac = shave_excess(T, extToFac, lowbound)
+    T, degToFac = shave_excess(T, degToFac, lowbound)
     
-    return T, extToFac
+    return T, degToFac
 
 ####################################
 #                                  #
@@ -128,43 +131,68 @@ def endo_j(P):
     x,y = P.xy()
     return E0(pi(x), pi(y))
 
-def EvalEndomorphism(alpha, P, ord):
+extraFields = dict()
+
+def HalfPoint(P):
+    E = P.curve()
+    extdeg = int(E.base_field().degree() / 2)
+    if extdeg in extraFields.keys():
+        Fbig = extraFields[extdeg]
+    elif extdeg * 2 in degToField.keys():
+        extraFields[extdeg] = degToField[extdeg*2]
+        Fbig = extraFields[extdeg]
+    else:
+        Fbig, _ = E.base_field().extension(2,'A').objgen()
+        extraFields[extdeg] = Fbig
+
+    Ebig = E.base_extend(Fbig)
+    return Ebig(P).division_points(2)[0]
+
+
+def EvalEndomorphism(alpha, P, ord, Phalf=None):
     d = lcm(c.denominator() for c in alpha)
     E = P.curve()
     assert P*ord == 0
     assert d == 1 or d == 2
     if gcd(d, ord) == 2:
-        alpha = d*alpha
-        Fbig, _ = E.base_field().extension(4,'A').objgen()
-        Ebig = E.base_extend(Fbig)
-        P = Ebig(P).division_points(2)[0]
+        if Phalf is not None:
+            P = Phalf
+        else:
+            P = HalfPoint(P)
+        alpha = 2 * alpha
     iP = endo_i(P)
     jP = endo_j(P)
     kP = endo_i(jP)
     coeffs = [coeff % ord for coeff in alpha]
     return E(sum(c*Q for c, Q in zip(coeffs, [P, iP, jP, kP])))
 
-def ActionMatrix(alpha, basis, ord):
+def ActionMatrix(alpha, basis, ord, Phalf=None, Qhalf=None):
     P, Q = basis
-    alphaP = EvalEndomorphism(alpha, P, ord)
-    alphaQ = EvalEndomorphism(alpha, Q, ord)
-    #if(alpha == B(1)):
-    #    print(P, alphaP)
+
+    alphaP = EvalEndomorphism(alpha, P, ord, Phalf)
+    alphaQ = EvalEndomorphism(alpha, Q, ord, Qhalf)
+
     a, c = BiDLP(alphaP, P, Q, ord)
     b, d = BiDLP(alphaQ, P, Q, ord)
     return [[a, b],[c,d]]
 
 def BasisAct(base, ord):
-    #t0 = time.time_ns()
     i,j,k = B.gens()
-    M_0 = ActionMatrix(B(1), base, ord)
+    Phalf = None
+    Qhalf = None
+    if(ord%2 == 0):
+        Phalf = HalfPoint(base[0])
+        Qhalf = HalfPoint(base[1])
+    M_0 = [[1,0], [0,1]]
     M_1 = ActionMatrix(i, base, ord)
-    M_2 = ActionMatrix((i+j)/2, base, ord)
-    M_3 = ActionMatrix((1+k)/2, base, ord)
-    M_theta = ActionMatrix(j + (1+k)/2, base, ord)
-    #t1 = time.time_ns()
-    #t = float((t1-t0) / (10 ** 9))
-    #print(f"Basis action time for {ord}: {t}")
+    M_2 = ActionMatrix((i+j)/2, base, ord, Phalf, Qhalf)
+    M_3 = ActionMatrix((1+k)/2, base, ord, Phalf, Qhalf)
+    #M_theta = ActionMatrix(j + (1+k)/2, base, ord)
+    a = (-M_1[0][0] + M_2[0][0]*2 + M_3[0][0]) % ord
+    b = (-M_1[0][1] + M_2[0][1]*2 + M_3[0][1]) % ord
+    c = (-M_1[1][0] + M_2[1][0]*2 + M_3[1][0]) % ord
+    d = (-M_1[1][1] + M_2[1][1]*2 + M_3[1][1]) % ord
+    M_theta = [[a,b],[c,d]]
     return (M_0, M_1, M_2, M_3, M_theta)
 
 start = time.time()
@@ -180,7 +208,7 @@ match bitsize:
         lowbound = 2**(0.75*RR(log(p,2)))
     case 1024:
         p = Integer(15922486913903522274738876334491173327471544233065982291422062886364771917539984633619947369979657884209891416505022976305949903782081999018601968658399212422459232014682162496366184150793214330561748936802196212819401893052051149876176865225396801900263676014808365383967944863381855436796098378947797615849584416454584458385591707302057385868132351)
-        lowbound = 2**(0.6*RR(log(p,2)))
+        lowbound = 2**(0.75*RR(log(p,2)))
     case 2048:
         p = Integer(596189944777372638172818300422290385024394468583357632698904620718401201446423451780730293885911387310424468466907078162034493044851014467790119468529446035454449745387614406711198662080037561127345507482289795632805587649490909091103733371042789817522706777642319645749180265150818764030351009256231058220919495563789230174870643587414401676910226850987845426748837131252505799030848442553318641506513527604875273309202232111785774057997494359022678091161441638118008960288159517233147661046896608323640602694819387549541102995842204231072991679669787422227224111599861798724874762075043130922161141224785272355703617441872269175696231180105996744064900599544211922383800484570456691509756280863371782883761347598535069684820049133567)
         lowbound = 2**(0.6*RR(log(p,2)))
@@ -201,10 +229,11 @@ assert is_pseudoprime(p)
 
 print("Choosing torsion....")
 
-T, extToFac = choose_torsion(p, lowbound)
+#T, degToFac = choose_torsion(p, lowbound, max_ext=50, max_tors=10000)
+T, degToFac = choose_torsion(p, lowbound, max_tors=2000)
 facToExt = dict()
-for extdeg in extToFac.keys():
-    for D in extToFac[extdeg]:
+for extdeg in degToFac.keys():
+    for D in degToFac[extdeg]:
         facToExt[D] = extdeg
 T = ZZ(T)
 
@@ -232,73 +261,108 @@ O0 = B.quaternion_order([1, i, (i+j)/2, (1+k)/2])
 E0 = EllipticCurve(F, [1,0])
 E0.set_order((p+1)**2, num_checks=0)
 
-facToBasis = {}
-facToAction = {}
+facToBasis = dict()
+facToAction = dict()
+facToPoints = dict()
+
+degToField = {1 : F}
+degToModulus = {1 : str(var('x')**2 + 1)}
+degToi = {1 : sqrtm1}
+degToFrobPol = dict()
 
 B_2 = TorsionBasis(E0, 2**f, xOnly = 1)
 P2, Q2 = B_2
 P2.set_order(2**f)
 Q2.set_order(2**f)
-facToAction[2**f] = BasisAct(B_2, 2**f)
+facToPoints[2**f] = B_2
+#facToAction[2**f] = BasisAct(B_2, 2**f)
 
 B_chall = TorsionBasis(E0, D_chall, xOnly = 1)
 Pc, Qc = B_chall
 Pc.set_order(D_chall)
 Qc.set_order(D_chall)
-facToAction[D_chall] = BasisAct(B_chall, D_chall)
+facToPoints[D_chall] = B_chall
 
-degToField = {1 : F}
-degToModulus = {1 : str(var('x')**2 + 1)}
-degToi = {1 : sqrtm1}
-for extdeg in extToFac.keys():
+#facToAction[D_chall] = BasisAct(B_chall, D_chall)
+
+
+
+for extdeg in degToFac.keys():
     print(f"{extdeg}")
-    print(f"{lcm(extToFac[extdeg])}")
+    print(f"{lcm(degToFac[extdeg])}")
 
 #Testing that every torsion exists, and we find big enough torsion
 TT = 1
-for k in extToFac.keys():
-    assert (lcm(extToFac[k])).divides(cyclpol_from_extdeg(k)(p))
-    TT = lcm(T, lcm(extToFac[k]))
+for k in degToFac.keys():
+    assert (lcm(degToFac[k])).divides(cyclpol_from_extdeg(k)(p))
+    TT = lcm(T, lcm(degToFac[k]))
 assert TT > lowbound
+
+def field_gen(extdeg):
+    s = time.time()
+    print(f"Generating field of extension degree {extdeg}")
+    args = ["./c_torsion/torsion_basis", "get_field", f"{p}", f"{2*extdeg}"]
+    #print(args)
+    cp = run(args, text=True, capture_output=True)
+    if(cp.returncode == 0): 
+        print(f"Finite field of {extdeg} generated in {time.time()-s:.1f}s")
+        return cp.stdout
+    if(cp.returncode != 1): print("Error in the C code: ", cp.stderr)
+    return None
+
+def field_setup(extdeg, modulus, _sqrtm1, frob_pol):
+    if extdeg not in degToField.keys():
+        Fbig = GF((p ** (extdeg*2)), modulus=modulus, name='z' + str(2*extdeg))
+        degToField[extdeg] = Fbig
+        degToModulus[extdeg] = str(Fbig.modulus())
+    Fbig = degToField[extdeg]
+    i = Fbig(_sqrtm1)
+    try:
+        Fbig.register_coercion(F.hom([i], codomain=Fbig, check=False))
+        degToi[extdeg] = i
+    except: pass
+    if extdeg not in degToi.keys():
+        degToi[extdeg] = i
+    degToFrobPol[extdeg] = frob_pol
+
+print(degToFac.keys())
+
+with Pool(os.cpu_count()-1) as pool:
+    for result in pool.imap(field_gen, degToFac.keys(), 6):
+        if(result is None): continue
+        lines = result.splitlines()
+        modulus = literal_eval(lines[0])
+        i = literal_eval(lines[1])
+        frob_pol = PolRing(literal_eval(lines[2]))
+        extdeg = int((len(modulus)-1) / 2)
+        field_setup(extdeg, modulus, i, frob_pol)
+
 
 def parallel1(extdeg_D):
     extdeg, D = extdeg_D
     s = time.time()
     print(f"Finding torsion {D} basis in extension {extdeg}")
-    i=1
-    while True:
-        cp = run(["./c_torsion/torsion_basis", f"{bitsize}", f"{i}", f"{extdeg}", f"{D}"], text=True, capture_output=True)
-        if(cp.returncode == 0): 
-            print(f"Torsion {D} basis in extension {extdeg} found in {time.time()-s:.1f}s")
-            return cp.stdout, extdeg, D
-        if("stack overflows" not in cp.stderr):
-            print(f"Error in the C code, couldn't find torsion {D} in extension {extdeg}")
-            print(" Error message ", cp.stderr)
-            print(" Stdout: ", cp.stdout)
-            return
-        print(f"Memory overflow in PARI, trying again with bigger memory (extdeg={extdeg})")
-        i += 1
+    iToPol = degToi[extdeg].polynomial().change_variable_name(x)
+    args = ["./c_torsion/torsion_basis", "get_torsion_basis", f"{p}", f"{extdeg*2}", f"{D}", f"{degToModulus[extdeg]}", f"{iToPol}", f"{degToFrobPol[extdeg]}"]
+    cp = run(args, text=True, capture_output=True)
+    if(cp.returncode == 0):
+        print(f"Torsion {D} basis in extension {extdeg} found in {time.time()-s:.1f}s")
+        return cp.stdout, extdeg, D
+    print(f"Error in the C code, couldn't find torsion {D} in extension {extdeg}")
+    print(" Error message ", cp.stderr)
+    print(" Stdout: ", cp.stdout)
+    return None
 
 def nonparallel(result, extdeg, D):
     print(f"Doing nonparallel stuff for extension {extdeg}")
     s = time.time()
     lines = [l for l in result.splitlines()]
-    if extdeg in degToField.keys():
-        Fbig = degToField[extdeg]
-    else:
-        Fbig = GF((p,2*extdeg), name='z' + str(2*extdeg), modulus=literal_eval(lines[0]))
-        degToField[extdeg] = Fbig
-        degToModulus[extdeg] = str(Fbig.modulus())
-    i = Fbig(literal_eval(lines[1]))
-    xP = Fbig(literal_eval(lines[2]))
-    yP = Fbig(literal_eval(lines[3]))
-    xQ = Fbig(literal_eval(lines[4]))
-    yQ = Fbig(literal_eval(lines[5]))
+    Fbig = degToField[extdeg]
+    xP = Fbig(literal_eval(lines[0]))
+    yP = Fbig(literal_eval(lines[1]))
+    xQ = Fbig(literal_eval(lines[2]))
+    yQ = Fbig(literal_eval(lines[3]))
 
-    try:
-        Fbig.register_coercion(F.hom([i], codomain=Fbig, check=False))
-        degToi[extdeg] = i
-    except: pass
 
     Ebig = E0.base_extend(Fbig)
     order = p**extdeg - (-1)**extdeg
@@ -307,7 +371,7 @@ def nonparallel(result, extdeg, D):
     Qbig = Ebig(xQ, yQ)
     for l, ee in factor(D):
         for e in range(1, ee+1):
-            if(l**e not in extToFac[extdeg]): continue
+            if(l**e not in degToFac[extdeg]): continue
         le = l**e
         P = Pbig * (D/le)
         Q = Qbig * (D/le)
@@ -319,17 +383,21 @@ def nonparallel(result, extdeg, D):
         facToAction[le] = BasisAct(Basis, le)
     print(f"Finished everything in extension {extdeg} in {time.time()-s:.1f}s")
     return i
-    
+
+def parallel2(D):
+    print("In parrallel 2: ", D)
+    return BasisAct(facToPoints[D], D), D
 
 extdeg_D_pairs = []
-for D in extToFac[1]:
-    result = parallel1((1, D))
-    res, extdeg, D = result
-    nonparallel(res, extdeg, D)
+for D in degToFac[1]:
+    extdeg_D_pairs.append((1, D))
+    #result = parallel1((1, D))
+    #res, extdeg, D = result
+    #nonparallel(res, extdeg, D)
 
-for extdeg in extToFac.keys():
+for extdeg in degToFac.keys():
     if(extdeg == 1): continue
-    extdeg_D_pairs.append((extdeg,lcm(extToFac[extdeg])))
+    extdeg_D_pairs.append((extdeg,lcm(degToFac[extdeg])))
 
 print(extdeg_D_pairs)
 #the extdeg_D_pairs get processed in chunks. Each chunk is processed by one core
@@ -340,8 +408,41 @@ with Pool(os.cpu_count()-1) as pool:
     for result in pool.imap(parallel1, extdeg_D_pairs, 6):
         if(result is None): continue
         res, extdeg, D = result
-        degToi[extdeg] = nonparallel(res, extdeg, D)
+        #degToi[extdeg] = nonparallel(res, extdeg, D)
+        lines = [l for l in res.splitlines()]
+        Fbig = degToField[extdeg]
+        xP = Fbig(literal_eval(lines[0]))
+        yP = Fbig(literal_eval(lines[1]))
+        xQ = Fbig(literal_eval(lines[2]))
+        yQ = Fbig(literal_eval(lines[3]))
+        Ebig = E0.base_extend(Fbig)
+        order = p**extdeg - (-1)**extdeg
+        Ebig.set_order(order**2, num_checks=0)
+        Pbig = Ebig(xP, yP)
+        Qbig = Ebig(xQ, yQ)
+        for l, ee in factor(D):
+            for e in range(1, ee+1):
+                if(l**e not in degToFac[extdeg]): continue
+                le = l**e
+                P = Pbig * (D/le)
+                Q = Qbig * (D/le)
+                facToPoints[le] = (P, Q)
 
+torsions = list(facToPoints.keys())
+shuffle(torsions)
+
+with Pool(os.cpu_count()-1) as pool:
+    for result in pool.imap(parallel2, torsions, 6):
+        if(result is None): continue
+        P, Q = facToPoints[D]
+        Ebig = P.curve()
+        PmQ = P-Q
+        xP, xQ, xPmQ = xPoint(P.xy()[0], Ebig), xPoint(Q.xy()[0], Ebig), xPoint(PmQ.xy()[0], Ebig)
+        Basis = P, Q
+
+        facToBasis[D] = [xP, xQ, xPmQ] 
+        res, D = result
+        facToAction[D] = res
 
 printable_facToBasis = {}
 for key in facToBasis.keys():

@@ -74,7 +74,6 @@ def mult_w_frob(P, N):
     res = mult_with_pol(P, pol)
     res = rem * res
     return res
-
     
 def Torsion_Point(E, D):
     F = E.base_field()
@@ -127,11 +126,9 @@ def CompleteBasis(R, D, x = 1, E0 = None):
     assert False, "Something went wrong in Complete Basis..."
 
 def TorsionBasis(E, D, xOnly = 0, E0 = None):
-    start = time.time()
     P = Torsion_Point(E, D)
     Q = CompleteBasis(P, D, E0 = E0)
     end = time.time()
-    print(f"Basis in torsion {D} found in: {end - start}")
     if xOnly == 1:
         return P, Q
     PmQ = P-Q
