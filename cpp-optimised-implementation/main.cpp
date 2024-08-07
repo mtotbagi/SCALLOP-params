@@ -1,12 +1,9 @@
 #include <NTL/ZZ.h>
-#include <NTL/ZZ_pE.h>
-#include <NTL/ZZ_pX.h>
 
 #include "montgomery.hpp"
 #include "fp2.hpp"
 #include "isog.hpp"
 #include "scallop.hpp"
-#include "sqrt_velu.hpp"
 
 
 void test_fp2_arith()
@@ -67,20 +64,20 @@ void test_ec_params_1024()
     xPoint Q{{Q_0, Q_1}, Fp2_one()};
     xPoint Qm{{Qm_0, Qm_1}, Fp2_one()};
 
-    std::vector<int> strat{256, 128, 64, 32, 17, 9, 5, 3, 2, 1, 1, 1, 1, 2, 1, 1, 1, 4, 2, 1, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 64, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 128, 64, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 64, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1};
+    //std::vector<int> strat2{256, 128, 64, 32, 17, 9, 5, 3, 2, 1, 1, 1, 1, 2, 1, 1, 1, 4, 2, 1, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 64, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 128, 64, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 64, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 32, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1};
     
-    std::vector<xPoint> KerGens_1, KerGens_2, KerGens_3;
-    ProjA Am = TwoIsogChainPrecompute(P, A, strat, KerGens_1);
+    std::vector<IsogConsts> KerGens_1, KerGens_2, KerGens_3;
+    ProjA Am = FourIsogChainPrecompute(P, A, strat, KerGens_1);
     std::cout << "j-invariant away P: " << StringFp2(jInvariant(Am)) << std::endl;
 
-    ProjA Amm = TwoIsogChainPrecompute(Q, A, strat, KerGens_2);
+    ProjA Amm = FourIsogChainPrecompute(Q, A, strat, KerGens_2);
     std::cout << "j-invariant away Q: " << StringFp2(jInvariant(Amm)) << std::endl;
 
     auto ur = IsomorphismConstants(Amm, Am);
-    xPoint Qmm = TwoIsogChainEvaluate(Qm, KerGens_2);
+    xPoint Qmm = FourIsogChainEvaluate(Qm, KerGens_2);
 
     Qmm = IsomorphismEval(Qmm, ur);
-    ProjA A_start = TwoIsogChainPrecompute(Qmm, Am, strat, KerGens_3);
+    ProjA A_start = FourIsogChainPrecompute(Qmm, Am, strat, KerGens_3);
 
     std::cout << "j-invariant orig: " << StringFp2(jInvariant(A)) << std::endl;
     std::cout << "j-invariant recovered: " << StringFp2(jInvariant(A_start)) << std::endl;
@@ -103,9 +100,9 @@ void test_ec_params_1024()
     }
     assert (IsIdentity(Ki));
 
-    xPoint wK = TwoIsogChainEvaluate(K, KerGens_1);
+    xPoint wK = FourIsogChainEvaluate(K, KerGens_1);
 
-    wK = TwoIsogChainEvaluate(wK, KerGens_3);
+    wK = FourIsogChainEvaluate(wK, KerGens_3);
     wK = IsomorphismEval(wK, ur_home);
 
     assert (IsIdentity(xMUL(wK, NTL::ZZ(47), A)));
@@ -122,8 +119,8 @@ void test_ec_params_1024()
     assert (IsIdentity(xMUL(Kp, NTL::ZZ(47), A)));
 
     // Test that we got the correct sign
-    xPoint wKp = TwoIsogChainEvaluate(Kp, KerGens_1);
-    wKp = TwoIsogChainEvaluate(wKp, KerGens_3);
+    xPoint wKp = FourIsogChainEvaluate(Kp, KerGens_1);
+    wKp = FourIsogChainEvaluate(wKp, KerGens_3);
     wKp = IsomorphismEval(wKp, ur_home);
 
     xPoint lamKp = xMUL(Kp, lampos, A);
@@ -141,26 +138,21 @@ void test_ec_params_1024()
     std::vector<xPoint> evalPts{P, Q, Qm};
     ProjA A2 = xISOG(Kp, A, 47, evalPts);
 
-    std::vector<xPoint> KerGens_4, KerGens_5;
-    ProjA A2m = TwoIsogChainPrecompute(evalPts[0], A2, strat, KerGens_4);
+    std::vector<IsogConsts> KerGens_4, KerGens_5;
+    ProjA A2m = FourIsogChainPrecompute(evalPts[0], A2, strat, KerGens_4);
     std::cout << "j-invariant away P2: " << StringFp2(jInvariant(A2m)) << std::endl;
 
-    ProjA A2mm = TwoIsogChainPrecompute(evalPts[1], A2, strat, KerGens_5);
+    ProjA A2mm = FourIsogChainPrecompute(evalPts[1], A2, strat, KerGens_5);
     std::cout << "j-invariant away Q2: " << StringFp2(jInvariant(A2mm)) << std::endl;
     assert (jInvariant(A2mm) == jInvariant(A2m));
 
     std::cout << "  Success!\n\n\n\n" << std::endl;
 }
 
-void test_sqrtVelu() {
-    std::cout << "Testing sqrtVelu" << std::endl;
+void time_four_isog_mult()
+{
+    std::cout << "Timing four isog vs double double" << std::endl;
     NTL::ZZ_p::init(p);
-
-    //Fp2 - Needed for sqrtVelu
-    NTL::ZZ_pX f;
-    SetCoeff(f, 2);
-    f[0] = NTL::ZZ_p(1);
-    NTL::ZZ_pE::init(f);
 
     NTL::ZZ_p A_0, A_1;
     NTL::conv(A_0, A_re);
@@ -180,53 +172,33 @@ void test_sqrtVelu() {
     xPoint Q{{Q_0, Q_1}, Fp2_one()};
     xPoint Qm{{Qm_0, Qm_1}, Fp2_one()};
 
-
-
-    int ell = 977;
-
-    xPoint K = PointOfOrderDividing(A, NTL::ZZ(ell));
-    NormalizePoint(K);
-    assert (!(IsIdentity(K)));
-
-    std::vector<xPoint> evalPts{P, Q, Qm};
-
+    
+    int rep = 1000;
     auto start = std::chrono::steady_clock::now();
-    ProjA A2;
-    for (int i = 0; i < 30; i++) {
-        std::vector<xPoint> evalPts_t = evalPts;
-        A2 = xISOG(K, A, ell, evalPts_t);
+    for (int i = 0; i < rep; i++) {
+        xDBL(xDBL(P, A), A);
     }
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
+    std::cout << "Multiplication by 2 took: " << duration.count() << " microseconds" << std::endl;
+    xPoint Ker = xDBLe(P, e-2, A);
+    assert (!(IsIdentity(xDBL(Ker, A))));
+    assert (IsIdentity(xDBLe(Ker, 2, A)));
 
-    std::cout << "Velu took: " << duration.count() << " milliseconds" << std::endl;
+    IsogConsts Ks;
+    ProjA A2 = FourIsogCurve(Ker, Ks);
 
     start = std::chrono::steady_clock::now();
-
-    ProjA A2m;
-    for (int i = 0; i < 30; i++) {
-        std::vector<xPoint> evalPts_t = evalPts;
-        A2m = SqrtVELU(K, A, ell, evalPts_t);
+    for (int i = 0; i < rep; i++) {
+        FourIsogEval(Q, Ks);
     }
-    duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
-
-    std::cout << "SqrtVelu took: " << duration.count() << " milliseconds" << std::endl;
-
-    assert (Fp2_equal(jInvariant(A2), jInvariant(A2m)));
-
-    std::cout << "  Success!\n\n\n\n" << std::endl;
-
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
+    std::cout << "Four isog eval took: " << duration.count() << " microseconds" << std::endl;
 }
 
 void test_scallop()
 {
     std::cout << "Testing PEARL-SCALLOP" << std::endl;
     NTL::ZZ_p::init(p);
-
-    //Fp2 - Needed for sqrtVelu
-    NTL::ZZ_pX f;
-    SetCoeff(f, 2);
-    f[0] = NTL::ZZ_p(1);
-    NTL::ZZ_pE::init(f);
 
     NTL::ZZ_p A_0, A_1;
     NTL::conv(A_0, A_re);
@@ -247,11 +219,11 @@ void test_scallop()
     xPoint Qm{{Qm_0, Qm_1}, Fp2_one()};
 
     // Just a random L-infty norm ~(10, 20) vector
-    std::vector<int> es = GenSecret(dim, N_ball);
-    auto PK_A = GroupAction(P, Q, Qm, A, es);
+    // std::vector<int> es = GenSecret(dim, N_ball);
+    // auto PK_A = GroupAction(P, Q, Qm, A, es);
 
     // Key Exchange
-    /*
+    
     std::vector<int> es_A = GenSecret(dim, 3);
     std::vector<int> es_B = GenSecret(dim, 3);
 
@@ -275,7 +247,7 @@ void test_scallop()
     std::cout << "Shared keys equal??" << std::endl;
     std::cout << "j(E_AB) = " << StringFp2(jInvariant(SS_A)) << std::endl;
     std::cout << "j(E_AB) = " << StringFp2(jInvariant(SS_B)) << std::endl;
-    assert (Fp2_equal(jInvariant(SS_A), jInvariant(SS_B))); */
+    assert (Fp2_equal(jInvariant(SS_A), jInvariant(SS_B))); 
 
     //Reduced vector 1024?
     /* std::vector<int> es{0,-3,5,-2,-2,-1,1,16,14,6,5,-17,16,27,8,-34,6,9,1,2,19,-24,21,35,-2,41,-11,-5,60,-11,80,6,20,13,15,8,22,2,-21,-12,7,-19,-68,-39,9,-68,-13,33,-1,20,-31,-104,-18,-23,6,30,11,11,-7,-11,9,9,8,33,-3,12,0,4,8,4,-4,-11,-1,0,11};
@@ -288,7 +260,7 @@ int main()
 {
     //test_fp2_arith();
     //test_ec_params_1024();
-    //test_sqrtVelu();
+    //time_four_isog_mult();
     test_scallop();
     return 0;
 }
