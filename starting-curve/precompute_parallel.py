@@ -230,7 +230,7 @@ assert is_pseudoprime(p)
 print("Choosing torsion....")
 
 #T, degToFac = choose_torsion(p, lowbound, max_ext=50, max_tors=10000)
-T, degToFac = choose_torsion(p, lowbound, max_tors=2000)
+T, degToFac = choose_torsion(p, lowbound)
 facToExt = dict()
 for extdeg in degToFac.keys():
     for D in degToFac[extdeg]:
@@ -341,12 +341,12 @@ with Pool(os.cpu_count()-1) as pool:
 def parallel1(extdeg_D):
     extdeg, D = extdeg_D
     s = time.time()
-    print(f"Finding torsion {D} basis in extension {extdeg}")
+    if(extdeg > 1): print(f"Finding torsion {D} basis in extension {extdeg}")
     iToPol = degToi[extdeg].polynomial().change_variable_name(x)
     args = ["./c_torsion/torsion_basis", "get_torsion_basis", f"{p}", f"{extdeg*2}", f"{D}", f"{degToModulus[extdeg]}", f"{iToPol}", f"{degToFrobPol[extdeg]}"]
     cp = run(args, text=True, capture_output=True)
     if(cp.returncode == 0):
-        print(f"Torsion {D} basis in extension {extdeg} found in {time.time()-s:.1f}s")
+        if (extdeg > 1 ): print(f"Torsion {D} basis in extension {extdeg} found in {time.time()-s:.1f}s")
         return cp.stdout, extdeg, D
     print(f"Error in the C code, couldn't find torsion {D} in extension {extdeg}")
     print(" Error message ", cp.stderr)
@@ -434,6 +434,7 @@ shuffle(torsions)
 with Pool(os.cpu_count()-1) as pool:
     for result in pool.imap(parallel2, torsions, 6):
         if(result is None): continue
+        res, D = result
         P, Q = facToPoints[D]
         Ebig = P.curve()
         PmQ = P-Q
@@ -441,12 +442,16 @@ with Pool(os.cpu_count()-1) as pool:
         Basis = P, Q
 
         facToBasis[D] = [xP, xQ, xPmQ] 
-        res, D = result
         facToAction[D] = res
 
 printable_facToBasis = {}
 for key in facToBasis.keys():
+    #print(key)
     printable_facToBasis[key] = [[str(c) for c in P.X] for P in facToBasis[key]]
+
+printable_degToi = {}
+for key in degToi.keys():
+    printable_degToi[key] = str(degToi[key])
 
 with open(filename, 'w') as f:
     f.write(f'{p}\n')
@@ -457,6 +462,7 @@ with open(filename, 'w') as f:
     f.write(f'{[[str(c) for c in P.xy()] for P in B_2]}\n')
     f.write(f'{[[str(c) for c in P.xy()] for P in B_chall]}\n')
     f.write(f'{facToExt}\n')
+    #print([factor(d) for d in facToExt.keys()])
     f.write(f'{degToModulus}\n')
     f.write(f'{printable_facToBasis}\n')
     f.write(f'{facToAction}\n')
@@ -467,7 +473,7 @@ with open(filename, 'w') as f:
     #try:
     #    Fbig.register_coercion(F.hom([i], codomain=Fbig, check=False))
     #except: pass
-    f.write(f'{degToi}\n')
+    f.write(f'{printable_degToi}\n')
 
 end = time.time()
 print(end - start)
